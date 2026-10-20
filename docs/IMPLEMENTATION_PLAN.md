@@ -35,7 +35,7 @@ Rules:
 
 | Phase | Done | Total |
 |---|---|---|
-| P0 Foundation | 1 | 5 |
+| P0 Foundation | 2 | 5 |
 | P1 Parsing and environment | 0 | 3 |
 | P2 Runner | 0 | 5 |
 | P3 Statistics and decision | 0 | 6 |
@@ -53,7 +53,7 @@ Update this table whenever a status changes.
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
 | P0-T1 | `[x]` | Initialize module, directory layout, Makefile, `.golangci.yml`, basic CI | - | Repo that builds and lints in CI | `make check` green in CI on an empty branch | `make check` green, `.github/workflows/ci.yml`, commit 2ce7607 |
-| P0-T2 | `[ ]` | `model` package: domain types, JSON tags, `schema_version` | P0-T1 | `internal/model` | JSON round-trip and golden tests pass. No imports of other internal packages | |
+| P0-T2 | `[x]` | `model` package: domain types, JSON tags, `schema_version` | P0-T1 | `internal/model` | JSON round-trip and golden tests pass. No imports of other internal packages | `make check` green, 100% coverage, golden tests pass, commit dbdd22b |
 | P0-T3 | `[ ]` | `config` package: load YAML, defaults, validation, error messages with field paths | P0-T2 | `internal/config`, `schemas/config.v1.json` | Valid and invalid table tests pass. Fuzz test 30 seconds without panic. Example config passes schema validation | |
 | P0-T4 | `[ ]` | Error types, exit code mapping, `slog` setup | P0-T1 | `internal/cli` (error part), log helper | Test mapping `ErrConfig` to 2 and `ErrExecution` to 3 | |
 | P0-T5 | `[ ]` | CLI skeleton: root, `version`, `init` | P0-T3, P0-T4 | `cmd/perfguard`, `internal/cli` | E2e test: `version` runs, `init` produces a config that passes validation | |
@@ -166,3 +166,4 @@ Record important verification results here (brief, with date and commit).
 | Date | Task | Evidence |
 |---|---|---|
 | 2026-10-20 | P0-T1 | Module initialized with Go 1.24, directory layout created, Makefile targets tested, golangci-lint and govulncheck passing in make check, smoke unit and e2e tests pass (commit 2ce7607) |
+| 2026-10-20 | P0-T2 | model package implemented with schema_version, domain types, 100% test coverage, golden JSON shape tests, and strict boundary tests (commit dbdd22b) |
