@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "run-abc-123",
+  "side": "base",
+  "created_at": "2026-10-20T10:00:00Z",
+  "git": {
+    "sha": "3f2a9c1",
+    "ref": "origin/main",
+    "dirty": false
+  },
+  "env": {
+    "os": "linux",
+    "arch": "amd64",
+    "go_version": "go1.24",
+    "num_cpu": 8,
+    "cpu_model": "AMD EPYC",
+    "gomaxprocs": 8,
+    "hostname": "worker-01"
+  },
+  "params": {
+    "count": 10,
+    "benchtime": "1s",
+    "cpu": 8,
+    "include": ".",
+    "mode": "same-runner",
+    "warmup_runs": 1,
+    "max_extra_runs": 10,
+    "extra_round_step": 0
+  },
+  "benchmarks": [
+    {
+      "package": "example.com/pkg",
+      "name": "BenchmarkHandle",
+      "procs": 8,
+      "samples": [
+        {
+          "iterations": 1000,
+          "values": {
+            "B/op": 128,
+            "allocs/op": 2,
+            "sec/op": 0.001
+          }
+        }
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "benchmark": "BenchmarkHandle",
+      "type": "cpu",
+      "path": ".perfguard/runs/run-abc-123/base.cpu.pb.gz",
+      "runs": 3
+    }
+  ]
+}

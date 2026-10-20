@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "base": {
+    "id": "run-abc-123",
+    "side": "base",
+    "created_at": "2026-10-20T10:00:00Z",
+    "git": {
+      "sha": "3f2a9c1",
+      "ref": "origin/main",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.24",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8,
+      "hostname": "worker-01"
+    }
+  },
+  "head": {
+    "id": "run-def-456",
+    "side": "head",
+    "created_at": "2026-10-20T10:05:00Z",
+    "git": {
+      "sha": "8be41d7",
+      "ref": "head",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.24",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8,
+      "hostname": "worker-01"
+    }
+  },
+  "items": [
+    {
+      "benchmark": "BenchmarkHandle",
+      "metric": "sec/op",
+      "base_median": 100,
+      "head_median": 135,
+      "delta_pct": 35,
+      "ci": [
+        30,
+        40
+      ],
+      "p_value": 0.0002,
+      "cv_base": 2.1,
+      "cv_head": 2.5,
+      "n_base": 10,
+      "n_head": 10,
+      "status": "fail",
+      "reason": "exceeds_fail"
+    }
+  ],
+  "verdict": "fail",
+  "diagnosis": [
+    {
+      "benchmark": "BenchmarkHandle",
+      "profile_type": "cpu",
+      "candidates": [
+        {
+          "function": "example.com/pkg.HeavyFunc",
+          "flat_delta": 9.8,
+          "cum_delta": 14.1,
+          "touched": true
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "measured on same-runner"
+  ]
+}
