@@ -247,3 +247,97 @@ execution:
 		}
 	})
 }
+
+func TestE2E_Compare(t *testing.T) {
+	binPath := buildBinary(t)
+
+	baseFixture, err := filepath.Abs("../../testdata/compare/base.result.json")
+	if err != nil {
+		t.Fatalf("failed to resolve base fixture path: %v", err)
+	}
+
+	headFixture, err := filepath.Abs("../../testdata/compare/head.result.json")
+	if err != nil {
+		t.Fatalf("failed to resolve head fixture path: %v", err)
+	}
+
+	goldenPath, err := filepath.Abs("../../testdata/compare/comparison.golden.json")
+	if err != nil {
+		t.Fatalf("failed to resolve golden path: %v", err)
+	}
+
+	schemaPath, err := filepath.Abs("../../schemas/comparison.v1.json")
+	if err != nil {
+		t.Fatalf("failed to resolve schema path: %v", err)
+	}
+
+	compiler := jsonschema.NewCompiler()
+	sch, err := compiler.Compile(schemaPath)
+	if err != nil {
+		t.Fatalf("failed compiling comparison schema: %v", err)
+	}
+
+	tmpDir := t.TempDir()
+	outComp := filepath.Join(tmpDir, "comparison.json")
+
+	cmd := exec.Command(binPath, "compare", baseFixture, headFixture, "-o", outComp)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("perfguard compare failed: %v\nOutput: %s", err, string(output))
+	}
+
+	if !strings.Contains(string(output), "fail verdict") {
+		t.Errorf("expected output message to contain 'fail verdict', got: %s", string(output))
+	}
+
+	actualData, err := os.ReadFile(outComp)
+	if err != nil {
+		t.Fatalf("failed reading output comparison file: %v", err)
+	}
+
+	// 1. Validate against JSON Schema
+	var rawDoc any
+	if err := json.Unmarshal(actualData, &rawDoc); err != nil {
+		t.Fatalf("failed unmarshaling raw comparison doc: %v", err)
+	}
+	if err := sch.Validate(rawDoc); err != nil {
+		t.Fatalf("comparison.json failed schema validation: %v", err)
+	}
+
+	// 2. Validate against golden file
+	expectedData, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("failed reading golden comparison file: %v", err)
+	}
+
+	var actualCmp, expectedCmp model.Comparison
+	if err := json.Unmarshal(actualData, &actualCmp); err != nil {
+		t.Fatalf("failed unmarshaling actual comparison: %v", err)
+	}
+	if err := json.Unmarshal(expectedData, &expectedCmp); err != nil {
+		t.Fatalf("failed unmarshaling expected comparison: %v", err)
+	}
+
+	if actualCmp.SchemaVersion != expectedCmp.SchemaVersion {
+		t.Errorf("schema version mismatch: got %d, want %d", actualCmp.SchemaVersion, expectedCmp.SchemaVersion)
+	}
+	if actualCmp.Verdict != expectedCmp.Verdict {
+		t.Errorf("verdict mismatch: got %s, want %s", actualCmp.Verdict, expectedCmp.Verdict)
+	}
+	if len(actualCmp.Items) != len(expectedCmp.Items) {
+		t.Fatalf("items length mismatch: got %d, want %d", len(actualCmp.Items), len(expectedCmp.Items))
+	}
+	if actualCmp.Items[0].Benchmark != expectedCmp.Items[0].Benchmark {
+		t.Errorf("benchmark mismatch: got %s, want %s", actualCmp.Items[0].Benchmark, expectedCmp.Items[0].Benchmark)
+	}
+	if actualCmp.Items[0].Status != expectedCmp.Items[0].Status {
+		t.Errorf("status mismatch: got %s, want %s", actualCmp.Items[0].Status, expectedCmp.Items[0].Status)
+	}
+	if actualCmp.Items[0].Reason != expectedCmp.Items[0].Reason {
+		t.Errorf("reason mismatch: got %s, want %s", actualCmp.Items[0].Reason, expectedCmp.Items[0].Reason)
+	}
+	if actualCmp.Items[0].DeltaPct != expectedCmp.Items[0].DeltaPct {
+		t.Errorf("delta_pct mismatch: got %v, want %v", actualCmp.Items[0].DeltaPct, expectedCmp.Items[0].DeltaPct)
+	}
+}
+

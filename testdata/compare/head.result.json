@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "id": "run-head-fixture",
+  "side": "head",
+  "created_at": "2026-10-20T10:05:00Z",
+  "git": {
+    "sha": "2222222222222222222222222222222222222222",
+    "ref": "refs/heads/feat",
+    "dirty": false
+  },
+  "env": {
+    "os": "linux",
+    "arch": "amd64",
+    "go_version": "go1.23.0",
+    "num_cpu": 8,
+    "cpu_model": "AMD EPYC",
+    "gomaxprocs": 8,
+    "hostname": "bench-worker"
+  },
+  "params": {
+    "count": 6,
+    "benchtime": "1s",
+    "cpu": 8,
+    "include": ".*",
+    "mode": "same-runner",
+    "warmup_runs": 0,
+    "max_extra_runs": 0,
+    "extra_round_step": 1
+  },
+  "benchmarks": [
+    {
+      "package": "example.com/testmod",
+      "name": "BenchmarkProcess",
+      "procs": 8,
+      "samples": [
+        {
+          "iterations": 1000,
+          "values": {
+            "sec/op": 120.0
+          }
+        },
+        {
+          "iterations": 1000,
+          "values": {
+            "sec/op": 120.0
+          }
+        },
+        {
+          "iterations": 1000,
+          "values": {
+            "sec/op": 120.0
+          }
+        },
+        {
+          "iterations": 1000,
+          "values": {
+            "sec/op": 120.0
+          }
+        },
+        {
+          "iterations": 1000,
+          "values": {
+            "sec/op": 120.0
+          }
+        },
+        {
+          "iterations": 1000,
+          "values": {
+            "sec/op": 120.0
+          }
+        }
+      ]
+    }
+  ]
+}

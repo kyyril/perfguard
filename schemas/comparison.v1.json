@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://perfguard.dev/schemas/comparison.v1.json",
+  "title": "PerfGuard Comparison Result",
+  "description": "Schema for perfguard comparison.json output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "base",
+    "head",
+    "items",
+    "verdict"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "base": {
+      "$ref": "#/$defs/run_summary"
+    },
+    "head": {
+      "$ref": "#/$defs/run_summary"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metric_comparison"
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "inconclusive", "warn", "fail"]
+    },
+    "diagnosis": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnosis"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "git_info": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha", "ref", "dirty"],
+      "properties": {
+        "sha": { "type": "string" },
+        "ref": { "type": "string" },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "arch", "go_version", "num_cpu", "cpu_model", "gomaxprocs"],
+      "properties": {
+        "os": { "type": "string" },
+        "arch": { "type": "string" },
+        "go_version": { "type": "string" },
+        "num_cpu": { "type": "integer", "minimum": 1 },
+        "cpu_model": { "type": "string" },
+        "gomaxprocs": { "type": "integer", "minimum": 1 },
+        "hostname": { "type": "string" },
+        "kernel_version": { "type": "string" },
+        "extra": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "run_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "side", "created_at", "git", "env"],
+      "properties": {
+        "id": { "type": "string" },
+        "side": {
+          "type": "string",
+          "enum": ["base", "head"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "git": {
+          "$ref": "#/$defs/git_info"
+        },
+        "env": {
+          "$ref": "#/$defs/environment"
+        }
+      }
+    },
+    "metric_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark",
+        "metric",
+        "base_median",
+        "head_median",
+        "delta_pct",
+        "ci",
+        "p_value",
+        "cv_base",
+        "cv_head",
+        "n_base",
+        "n_head",
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "benchmark": { "type": "string" },
+        "metric": { "type": "string" },
+        "base_median": { "type": "number" },
+        "head_median": { "type": "number" },
+        "delta_pct": { "type": "number" },
+        "ci": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "p_value": { "type": "number" },
+        "cv_base": { "type": "number" },
+        "cv_head": { "type": "number" },
+        "n_base": { "type": "integer", "minimum": 0 },
+        "n_head": { "type": "integer", "minimum": 0 },
+        "status": {
+          "type": "string",
+          "enum": ["unchanged", "improved", "warn", "fail", "inconclusive", "new", "removed"]
+        },
+        "reason": { "type": "string" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["function", "flat_delta", "cum_delta", "touched"],
+      "properties": {
+        "function": { "type": "string" },
+        "flat_delta": { "type": "number" },
+        "cum_delta": { "type": "number" },
+        "touched": { "type": "boolean" }
+      }
+    },
+    "diagnosis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["benchmark", "profile_type", "candidates"],
+      "properties": {
+        "benchmark": { "type": "string" },
+        "profile_type": { "type": "string" },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candidate"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

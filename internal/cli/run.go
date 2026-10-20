@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,7 +27,7 @@ func newRunCmd(globalOpts *GlobalOptions) *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := config.Load(globalOpts.ConfigPath)
 			if err != nil {
-				if !cmd.Flags().Changed("config") && os.IsNotExist(err) {
+				if !cmd.Flags().Changed("config") && errors.Is(err, os.ErrNotExist) {
 					cfg = config.Default()
 				} else {
 					return WrapConfig(fmt.Errorf("failed to load configuration: %w", err))
