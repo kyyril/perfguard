@@ -35,8 +35,8 @@ Rules:
 
 | Phase | Done | Total |
 |---|---|---|
-| P0 Foundation | 4 | 5 |
-| P1 Parsing and environment | 0 | 3 |
+| P0 Foundation | 5 | 5 |
+| P1 Parsing and environment | 1 | 3 |
 | P2 Runner | 0 | 5 |
 | P3 Statistics and decision | 0 | 6 |
 | P4 Check end-to-end | 0 | 3 |
@@ -56,13 +56,13 @@ Update this table whenever a status changes.
 | P0-T2 | `[x]` | `model` package: domain types, JSON tags, `schema_version` | P0-T1 | `internal/model` | JSON round-trip and golden tests pass. No imports of other internal packages | `make check` green, 100% coverage, golden tests pass, commit dbdd22b |
 | P0-T3 | `[x]` | `config` package: load YAML, defaults, validation, error messages with field paths | P0-T2 | `internal/config`, `schemas/config.v1.json` | Valid and invalid table tests pass. Fuzz test 30 seconds without panic. Example config passes schema validation | `make check` green, 97.6% coverage, 30s fuzzing passed, schema validated, commit e0acdec |
 | P0-T4 | `[x]` | Error types, exit code mapping, `slog` setup | P0-T1 | `internal/cli` (error part), log helper | Test mapping `ErrConfig` to 2 and `ErrExecution` to 3 | `make check` green, 90.6% coverage, error mapping tests pass, commit 7717694 |
-| P0-T5 | `[~]` | CLI skeleton: root, `version`, `init` | P0-T3, P0-T4 | `cmd/perfguard`, `internal/cli` | E2e test: `version` runs, `init` produces a config that passes validation | |
+| P0-T5 | `[x]` | CLI skeleton: root, `version`, `init` | P0-T3, P0-T4 | `cmd/perfguard`, `internal/cli` | E2e test: `version` runs, `init` produces a config that passes validation | `make check` green, e2e tests pass, `version` and `init` verified, commit f3c47ca |
 
 ## P1 Parsing and environment
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P1-T1 | `[ ]` | `benchparse`: parse benchmark output, name normalization (`-N` suffix, sub-benchmarks), custom metrics | P0-T2 | `internal/benchparse` | Tests with real output fixtures pass. Fuzz test without panic. `p95-ms` metric is read | |
+| P1-T1 | `[x]` | `benchparse`: parse benchmark output, name normalization (`-N` suffix, sub-benchmarks), custom metrics | P0-T2 | `internal/benchparse` | Tests with real output fixtures pass. Fuzz test without panic. `p95-ms` metric is read | `make check` green, 97.3% coverage, fuzz passed, fixtures verified, commit 265827a |
 | P1-T2 | `[ ]` | `envinfo`: fingerprint and preflight (load, governor, cgroup) | P0-T2 | `internal/envinfo` | Tests with fake filesystem for `/proc` and `/sys`. Unreadable values produce empty fields, not errors | |
 | P1-T3 | `[ ]` | `gitx`: resolve ref, worktree, changed files, shallow clone detection | P0-T2 | `internal/gitx` | Integration test on temporary repo: worktree is created and cleaned up, shallow clone detected with a clear message | |
 
