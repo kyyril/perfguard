@@ -56,7 +56,7 @@ Update this table whenever a status changes.
 | P0-T2 | `[x]` | `model` package: domain types, JSON tags, `schema_version` | P0-T1 | `internal/model` | JSON round-trip and golden tests pass. No imports of other internal packages | `make check` green, 100% coverage, golden tests pass, commit dbdd22b |
 | P0-T3 | `[x]` | `config` package: load YAML, defaults, validation, error messages with field paths | P0-T2 | `internal/config`, `schemas/config.v1.json` | Valid and invalid table tests pass. Fuzz test 30 seconds without panic. Example config passes schema validation | `make check` green, 97.6% coverage, 30s fuzzing passed, schema validated, commit e0acdec |
 | P0-T4 | `[x]` | Error types, exit code mapping, `slog` setup | P0-T1 | `internal/cli` (error part), log helper | Test mapping `ErrConfig` to 2 and `ErrExecution` to 3 | `make check` green, 90.6% coverage, error mapping tests pass, commit 7717694 |
-| P0-T5 | `[ ]` | CLI skeleton: root, `version`, `init` | P0-T3, P0-T4 | `cmd/perfguard`, `internal/cli` | E2e test: `version` runs, `init` produces a config that passes validation | |
+| P0-T5 | `[~]` | CLI skeleton: root, `version`, `init` | P0-T3, P0-T4 | `cmd/perfguard`, `internal/cli` | E2e test: `version` runs, `init` produces a config that passes validation | |
 
 ## P1 Parsing and environment
 

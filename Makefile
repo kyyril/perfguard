@@ -1,6 +1,10 @@
 .PHONY: all build fmt fmt-check lint vet test test-race test-integration test-e2e cover vuln eval check tidy
 
-BIN := bin/perfguard
+ifeq ($(OS),Windows_NT)
+    BIN := bin/perfguard.exe
+else
+    BIN := bin/perfguard
+endif
 
 all: build
 
