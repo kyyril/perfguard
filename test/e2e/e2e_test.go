@@ -629,3 +629,65 @@ execution:
 	})
 }
 
+func TestE2E_QuickStart(t *testing.T) {
+	binPath := buildBinary(t)
+
+	repoDir := t.TempDir()
+
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "quickstart@example.com")
+	runGit(t, repoDir, "config", "user.name", "QuickStart Test")
+	runGit(t, repoDir, "config", "commit.gpgsign", "false")
+	runGit(t, repoDir, "config", "core.autocrlf", "false")
+
+	fixtureDir, err := filepath.Abs("../../testdata/fixtures/benchmod")
+	if err != nil {
+		t.Fatalf("resolve fixture dir: %v", err)
+	}
+	copyDir(t, fixtureDir, repoDir)
+
+	// Step 1: Run perfguard init
+	cmdInit := exec.Command(binPath, "init")
+	cmdInit.Dir = repoDir
+	if out, err := cmdInit.CombinedOutput(); err != nil {
+		t.Fatalf("perfguard init failed: %v\nOutput: %s", err, string(out))
+	}
+
+	configPath := filepath.Join(repoDir, "perfguard.yaml")
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatalf("perfguard.yaml was not created: %v", err)
+	}
+
+	// Update count and benchtime for faster test execution
+	fastCfg := `version: 1
+benchmarks:
+  packages: ["./pkgwithtests"]
+  count: 6
+  benchtime: "10ms"
+thresholds:
+  min_samples: 6
+execution:
+  warmup_runs: 0
+`
+	if err := os.WriteFile(configPath, []byte(fastCfg), 0o600); err != nil {
+		t.Fatalf("write updated perfguard.yaml: %v", err)
+	}
+
+	// Step 2: Commit base code
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "commit", "-m", "base commit")
+	baseSHA := runGit(t, repoDir, "rev-parse", "HEAD")
+
+	// Step 3: Run perfguard check --base <baseSHA>
+	cmdCheck := exec.Command(binPath, "check", "--base", baseSHA)
+	cmdCheck.Dir = repoDir
+	output, err := cmdCheck.CombinedOutput()
+	if err != nil {
+		t.Fatalf("perfguard check failed on clean quick start: %v\nOutput: %s", err, string(output))
+	}
+
+	if !strings.Contains(string(output), "OVERALL VERDICT: PASS") {
+		t.Errorf("expected OVERALL VERDICT: PASS in quick start output, got: %s", string(output))
+	}
+}
+

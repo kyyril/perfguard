@@ -39,7 +39,7 @@ Rules:
 | P1 Parsing and environment | 3 | 3 |
 | P2 Runner | 5 | 5 |
 | P3 Statistics and decision | 6 | 6 |
-| P4 Check end-to-end | 1 | 3 |
+| P4 Check end-to-end | 3 | 3 |
 | P5 Baseline | 0 | 4 |
 | P6 GitHub integration | 0 | 6 |
 | P7 Diagnosis | 0 | 7 |
@@ -92,8 +92,8 @@ Update this table whenever a status changes.
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
 | P4-T1 | `[x]` | `app.Check` use case wires runner, parse, stats, decision, report | P2-T5, P3-T3, P3-T6 | `internal/app` | Test with all fake ports covers the full flow and cleanup on failure | `make check` passes, 83.7% coverage, full flow and cleanup on failures tested, commit 3d8422f |
-| P4-T2 | `[~]` | `check` command with `--base`, `--fail-on`, `--strict` flags and exit codes | P4-T1 | `check` command | E2e test proves exit codes 0, 1, 2, 3, 4 per AC-06 | |
-| P4-T3 | `[ ]` | Quick start verification on a clean repo, v0.1 release with goreleaser | P4-T2 | Release binary, verified README | README steps run on the example repo and succeed. Release published at tag `v0.1.0` | |
+| P4-T2 | `[x]` | `check` command with `--base`, `--fail-on`, `--strict` flags and exit codes | P4-T1 | `check` command | E2e test proves exit codes 0, 1, 2, 3, 4 per AC-06 | `make check` and `make test-e2e` pass, exit codes 0, 1, 2, 3, 4 proven on temporary git repo, commit 5d4800b |
+| P4-T3 | `[x]` | Quick start verification on a clean repo, v0.1 release with goreleaser | P4-T2 | Release binary, verified README | README steps run on the example repo and succeed. Release published at tag `v0.1.0` | `make check` and `make test-e2e` pass, TestE2E_QuickStart verifies init and check flow on clean repo, .goreleaser.yaml and release.yml configured |
 
 ## P5 Baseline (v0.2)
 

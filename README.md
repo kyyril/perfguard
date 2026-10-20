@@ -42,18 +42,18 @@ Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quick start
 
-Prerequisites: Go 1.25 or newer (exact version in `go.mod`), git, Linux (fully supported), macOS (best effort).
+Prerequisites: Go 1.24 or newer (exact version in `go.mod`), git, Linux (fully supported), macOS (best effort).
 
 ```bash
 # Install (target)
-go install github.com/OWNER/perfguard/cmd/perfguard@latest
+go install github.com/kyyril/perfguard/cmd/perfguard@latest
 
 # In the root of the Go repository to test
 perfguard init                      # creates perfguard.yaml
 perfguard check --base origin/main  # compare HEAD against origin/main
 ```
 
-Replace `OWNER` with the GitHub organization or account that owns the repository.
+Replace `kyyril` with your fork owner if running from a fork.
 
 For a benchmark to be measurable, the target package must have `Benchmark*` functions that run with `go test -bench`.
 
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - uses: OWNER/perfguard@v0
+      - uses: kyyril/perfguard@v0
         with:
           base: ${{ github.event.pull_request.base.sha }}
           config: perfguard.yaml
