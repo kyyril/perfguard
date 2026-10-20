@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/kyyril/perfguard/internal/model"
 )
 
 type fakeGitClient struct {
@@ -137,5 +139,70 @@ func TestGitStore_ContextCancelled(t *testing.T) {
 	}
 	if _, err := store.Prune(ctx, PruneOptions{Keep: 1}); err == nil {
 		t.Error("expected error with cancelled context on Prune")
+	}
+}
+
+func TestGitStore_PruneOlderThanAndPerGroup(t *testing.T) {
+	client := newFakeGitClient()
+	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
+	store := NewGitStore(client, "perfguard-data", WithGitNowFunc(func() time.Time { return now }))
+	ctx := context.Background()
+
+	// Empty prune
+	deleted, err := store.Prune(ctx, PruneOptions{})
+	if err != nil || deleted != 0 {
+		t.Errorf("expected 0 deleted with no options, got %d (err: %v)", deleted, err)
+	}
+
+	// Group 1
+	r1 := makeTestRun("g1-1", "linux", "amd64", "cpu", 5, now.Add(-10*24*time.Hour))
+	r2 := makeTestRun("g1-2", "linux", "amd64", "cpu", 5, now.Add(-5*24*time.Hour))
+	r3 := makeTestRun("g1-3", "linux", "amd64", "cpu", 5, now.Add(-1*time.Hour))
+
+	// Group 2
+	r4 := makeTestRun("g2-1", "darwin", "arm64", "M3", 5, now.Add(-10*24*time.Hour))
+	r5 := makeTestRun("g2-2", "darwin", "arm64", "M3", 5, now.Add(-1*time.Hour))
+
+	for _, r := range []model.Run{r1, r2, r3, r4, r5} {
+		if _, err := store.Save(ctx, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Prune older than 7 days: should delete r1 and r4 (total 2)
+	deleted, err = store.Prune(ctx, PruneOptions{OlderThan: 7 * 24 * time.Hour})
+	if err != nil {
+		t.Fatalf("prune older than failed: %v", err)
+	}
+	if deleted != 2 {
+		t.Errorf("expected 2 deleted, got %d", deleted)
+	}
+
+	// Prune keep 1 per group: g1 has r2 and r3 -> delete r2. g2 has r5 -> keep r5. Total deleted: 1
+	deleted, err = store.Prune(ctx, PruneOptions{Keep: 1, PerGroup: true})
+	if err != nil {
+		t.Fatalf("prune per group failed: %v", err)
+	}
+	if deleted != 1 {
+		t.Errorf("expected 1 deleted, got %d", deleted)
+	}
+
+	remaining, err := store.List(ctx, Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remaining) != 2 {
+		t.Fatalf("expected 2 remaining, got %d", len(remaining))
+	}
+}
+
+func TestGitStore_SaveInvalidRun(t *testing.T) {
+	client := newFakeGitClient()
+	store := NewGitStore(client, "perfguard-data")
+	ctx := context.Background()
+
+	badRun := model.Run{}
+	if _, err := store.Save(ctx, badRun); err == nil {
+		t.Error("expected error saving invalid run, got nil")
 	}
 }
