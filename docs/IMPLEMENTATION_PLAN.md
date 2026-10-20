@@ -36,7 +36,7 @@ Rules:
 | Phase | Done | Total |
 |---|---|---|
 | P0 Foundation | 5 | 5 |
-| P1 Parsing and environment | 1 | 3 |
+| P1 Parsing and environment | 2 | 3 |
 | P2 Runner | 0 | 5 |
 | P3 Statistics and decision | 0 | 6 |
 | P4 Check end-to-end | 0 | 3 |
@@ -63,7 +63,7 @@ Update this table whenever a status changes.
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
 | P1-T1 | `[x]` | `benchparse`: parse benchmark output, name normalization (`-N` suffix, sub-benchmarks), custom metrics | P0-T2 | `internal/benchparse` | Tests with real output fixtures pass. Fuzz test without panic. `p95-ms` metric is read | `make check` green, 97.3% coverage, fuzz passed, fixtures verified, commit 265827a |
-| P1-T2 | `[ ]` | `envinfo`: fingerprint and preflight (load, governor, cgroup) | P0-T2 | `internal/envinfo` | Tests with fake filesystem for `/proc` and `/sys`. Unreadable values produce empty fields, not errors | |
+| P1-T2 | `[x]` | `envinfo`: fingerprint and preflight (load, governor, cgroup) | P0-T2 | `internal/envinfo` | Tests with fake filesystem for `/proc` and `/sys`. Unreadable values produce empty fields, not errors | `make check` green, 100% coverage, fake /proc and /sys tests pass, commit 62f9640 |
 | P1-T3 | `[ ]` | `gitx`: resolve ref, worktree, changed files, shallow clone detection | P0-T2 | `internal/gitx` | Integration test on temporary repo: worktree is created and cleaned up, shallow clone detected with a clear message | |
 
 ## P2 Runner
