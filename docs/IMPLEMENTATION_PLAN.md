@@ -37,7 +37,7 @@ Rules:
 |---|---|---|
 | P0 Foundation | 5 | 5 |
 | P1 Parsing and environment | 3 | 3 |
-| P2 Runner | 0 | 5 |
+| P2 Runner | 1 | 5 |
 | P3 Statistics and decision | 0 | 6 |
 | P4 Check end-to-end | 0 | 3 |
 | P5 Baseline | 0 | 4 |
@@ -70,7 +70,7 @@ Update this table whenever a status changes.
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P2-T1 | `[ ]` | Build test binary per package (`go test -c`) for base and head | P1-T3 | `internal/runner` (build) | Integration test: binary produced for fixture module, packages without tests are skipped, build error maps to `ErrExecution` | |
+| P2-T1 | `[x]` | Build test binary per package (`go test -c`) for base and head | P1-T3 | `internal/runner` (build) | Integration test: binary produced for fixture module, packages without tests are skipped, build error maps to `ErrExecution` | `make check` and integration tests pass, benchmod fixture tested, commit c428e4c |
 | P2-T2 | `[ ]` | Binary execution: context, timeout, process group, capture output, env allowlist | P2-T1 | `internal/runner` (execute) | Test: timeout stops child processes, SIGINT cleans up, secrets from env are not forwarded | |
 | P2-T3 | `[ ]` | Interleaved round orchestration and warmup | P2-T2, P1-T1 | `internal/runner` (rounds) | Test with fake runner: base and head order alternates each round, sample count equals exactly `count` | |
 | P2-T4 | `[ ]` | Preflight noise, optional CPU pinning | P1-T2, P2-T2 | Warning in report, Linux affinity | Test: high load produces a warning. Pinning is ignored with a message on non-Linux | |
