@@ -1,0 +1,7 @@
+OVERALL VERDICT: PASS
+
+Base: 1111111 (origin/main)
+Head: 7777777 (feat/improve)
+
+BENCHMARK      METRIC  BASE    HEAD    DELTA   P-VALUE  STATUS     REASON
+BenchmarkFast  sec/op  100.00  100.50  +0.50%  0.8500   unchanged  not_significant

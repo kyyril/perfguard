@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "base": {
+    "id": "run-base-fail",
+    "side": "base",
+    "created_at": "2026-10-20T10:00:00Z",
+    "git": {
+      "sha": "1111111222222233333334444444555555566666",
+      "ref": "origin/main",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.23.0",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8
+    }
+  },
+  "head": {
+    "id": "run-head-fail",
+    "side": "head",
+    "created_at": "2026-10-20T10:10:00Z",
+    "git": {
+      "sha": "7777777888888899999990000000111111122222",
+      "ref": "feat/improve",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.23.0",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8
+    }
+  },
+  "items": [
+    {
+      "benchmark": "BenchmarkEncode",
+      "metric": "sec/op",
+      "base_median": 100,
+      "head_median": 125,
+      "delta_pct": 25,
+      "ci": [
+        22,
+        28
+      ],
+      "p_value": 0.0001,
+      "cv_base": 1.8,
+      "cv_head": 2.2,
+      "n_base": 10,
+      "n_head": 10,
+      "status": "fail",
+      "reason": "exceeds_fail"
+    }
+  ],
+  "verdict": "fail",
+  "diagnosis": [
+    {
+      "benchmark": "BenchmarkEncode",
+      "profile_type": "cpu",
+      "candidates": [
+        {
+          "function": "example.com/pkg.GrowBuffer",
+          "flat_delta": 15.2,
+          "cum_delta": 22.4,
+          "touched": true
+        },
+        {
+          "function": "runtime.mallocgc",
+          "flat_delta": 8.5,
+          "cum_delta": 8.5,
+          "touched": false
+        }
+      ]
+    }
+  ]
+}

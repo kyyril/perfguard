@@ -1,0 +1,7 @@
+OVERALL VERDICT: WARN
+
+Base: 1111111 (origin/main)
+Head: 7777777 (feat/improve)
+
+BENCHMARK        METRIC  BASE    HEAD    DELTA   P-VALUE  STATUS  REASON
+BenchmarkBuffer  sec/op  200.00  213.00  +6.50%  0.0050   warn    exceeds_warn

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "base": {
+    "id": "run-base-inconclusive",
+    "side": "base",
+    "created_at": "2026-10-20T10:00:00Z",
+    "git": {
+      "sha": "1111111222222233333334444444555555566666",
+      "ref": "origin/main",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.23.0",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8
+    }
+  },
+  "head": {
+    "id": "run-head-inconclusive",
+    "side": "head",
+    "created_at": "2026-10-20T10:10:00Z",
+    "git": {
+      "sha": "7777777888888899999990000000111111122222",
+      "ref": "feat/improve",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.23.0",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8
+    }
+  },
+  "items": [
+    {
+      "benchmark": "BenchmarkFlaky",
+      "metric": "sec/op",
+      "base_median": 150,
+      "head_median": 155,
+      "delta_pct": 3.33,
+      "ci": [
+        -5,
+        12
+      ],
+      "p_value": 0,
+      "cv_base": 14.5,
+      "cv_head": 16.2,
+      "n_base": 10,
+      "n_head": 10,
+      "status": "inconclusive",
+      "reason": "noisy"
+    }
+  ],
+  "verdict": "inconclusive",
+  "notes": [
+    "CPU model difference: AMD EPYC vs Intel Xeon"
+  ]
+}

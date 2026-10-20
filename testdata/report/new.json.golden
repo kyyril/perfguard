@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "base": {
+    "id": "run-base-new",
+    "side": "base",
+    "created_at": "2026-10-20T10:00:00Z",
+    "git": {
+      "sha": "1111111222222233333334444444555555566666",
+      "ref": "origin/main",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.23.0",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8
+    }
+  },
+  "head": {
+    "id": "run-head-new",
+    "side": "head",
+    "created_at": "2026-10-20T10:10:00Z",
+    "git": {
+      "sha": "7777777888888899999990000000111111122222",
+      "ref": "feat/improve",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.23.0",
+      "num_cpu": 8,
+      "cpu_model": "AMD EPYC",
+      "gomaxprocs": 8
+    }
+  },
+  "items": [
+    {
+      "benchmark": "BenchmarkNewFeature",
+      "metric": "sec/op",
+      "base_median": 0,
+      "head_median": 50,
+      "delta_pct": 0,
+      "ci": [
+        0,
+        0
+      ],
+      "p_value": 0,
+      "cv_base": 0,
+      "cv_head": 1.5,
+      "n_base": 0,
+      "n_head": 10,
+      "status": "new",
+      "reason": "new_benchmark"
+    }
+  ],
+  "verdict": "pass"
+}
