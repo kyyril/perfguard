@@ -38,7 +38,7 @@ Rules:
 | P0 Foundation | 5 | 5 |
 | P1 Parsing and environment | 3 | 3 |
 | P2 Runner | 5 | 5 |
-| P3 Statistics and decision | 4 | 6 |
+| P3 Statistics and decision | 5 | 6 |
 | P4 Check end-to-end | 0 | 3 |
 | P5 Baseline | 0 | 4 |
 | P6 GitHub integration | 0 | 6 |
@@ -84,8 +84,8 @@ Update this table whenever a status changes.
 | P3-T2 | `[x]` | `decision`: 11 rules, verdict, reason codes | P3-T1, P0-T3 | `internal/decision` | One table test per rule. Rule order matches ARCHITECTURE. Worst verdict selected correctly | `make check` passes, 96.7% test coverage, 11 rules and verdict selection tested, commit 9dac16c |
 | P3-T3 | `[x]` | Adaptive samples for noisy metrics | P3-T2, P2-T3 | Loop in `app.Check` | Test with fake runner: samples increase up to the limit, then status follows `on_noisy` | `make check` passes, adaptive sampling loop and on_noisy behavior tested, commit 0704ead |
 | P3-T4 | `[x]` | Synthetic A/A and shift simulation as test gate | P3-T2 | Seeded simulation test | False positive rate and power meet thresholds in TESTING. Distributions: normal, lognormal, bimodal, drift | `make check` passes, 7 simulation distributions verified, commit 9ce5ace |
-| P3-T5 | `[~]` | `perfguard compare` and `comparison.json` | P3-T2, P0-T5 | `compare` command | E2e test with two fixture `result.json` files: `comparison.json` is valid and golden matches | |
-| P3-T6 | `[ ]` | `text` and `json` renderers | P3-T5 | `internal/report` | Golden tests for `pass`, `warn`, `fail`, `inconclusive`, `new`, `removed` | |
+| P3-T5 | `[x]` | `perfguard compare` and `comparison.json` | P3-T2, P0-T5 | `compare` command | E2e test with two fixture `result.json` files: `comparison.json` is valid and golden matches | `make check`, integration, e2e tests pass, schema validation and golden comparison verified, commit 5c03d7d |
+| P3-T6 | `[~]` | `text` and `json` renderers | P3-T5 | `internal/report` | Golden tests for `pass`, `warn`, `fail`, `inconclusive`, `new`, `removed` | |
 
 ## P4 Check end-to-end (v0.1 release)
 
