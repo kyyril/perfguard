@@ -1,0 +1,5 @@
+goos: linux
+goarch: amd64
+pkg: github.com/kyyril/perfguard/example
+PASS
+ok      github.com/kyyril/perfguard/example     0.005s

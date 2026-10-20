@@ -1,0 +1,16 @@
+# Build logs and compiler messages
+# github.com/kyyril/perfguard/example
+warning: something might be deprecated
+goos: linux
+goarch: amd64
+pkg: github.com/kyyril/perfguard/example
+BenchmarkValid1-8          1000000              1500 ns/op              16 B/op          1 allocs/op
+BenchmarkTruncatedLine
+BenchmarkMalformed 1000 notanumber ns/op
+Some random runtime log line: [INFO] worker started
+BenchmarkValid2/sub-4       500000              3000 ns/op              32 B/op          2 allocs/op
+BenchmarkValid1-8          1000000              1480 ns/op              16 B/op          1 allocs/op
+BenchmarkInterrupted 500
+--- FAIL: TestSomething (0.01s)
+FAIL
+exit status 1
