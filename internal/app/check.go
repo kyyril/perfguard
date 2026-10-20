@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/kyyril/perfguard/internal/baseline"
 	"github.com/kyyril/perfguard/internal/config"
 	"github.com/kyyril/perfguard/internal/decision"
 	"github.com/kyyril/perfguard/internal/envinfo"
@@ -20,12 +21,14 @@ import (
 
 // CheckOptions specifies options for executing a complete check run.
 type CheckOptions struct {
-	Config    *config.Config
-	WorkDir   string
-	BaseRef   string
-	OutputDir string
-	Runner    BenchRunner
-	Git       VCS
+	Config        *config.Config
+	WorkDir       string
+	BaseRef       string
+	OutputDir     string
+	Runner        BenchRunner
+	Git           VCS
+	Mode          string
+	BaselineStore baseline.Store
 }
 
 // CheckResult contains all artifacts and outputs of a check run.
@@ -85,44 +88,106 @@ func Check(ctx context.Context, opts CheckOptions) (CheckResult, error) {
 		}
 	}
 
-	// 2. Resolve base ref
-	baseRef := opts.BaseRef
-	if baseRef == "" {
-		baseRef = cfg.Baseline.Branch
+	// 2. Resolve mode and base
+	mode := opts.Mode
+	if mode == "" {
+		mode = cfg.Execution.Mode
 	}
-	if baseRef == "" {
-		baseRef = "origin/main"
-	}
-
-	baseCommit, err := gitClient.Resolve(ctx, baseRef)
-	if err != nil {
-		return CheckResult{}, fmt.Errorf("app: resolve base ref %s: %w", baseRef, err)
+	if mode == "" {
+		mode = "same-runner"
 	}
 
-	// 3. Create temporary worktree for base
-	wt, err := gitClient.CreateWorktree(ctx, baseCommit)
-	if err != nil {
-		return CheckResult{}, fmt.Errorf("app: create worktree for base %s: %w", baseCommit.SHA, err)
-	}
-	defer func() {
-		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = wt.Remove(cleanupCtx)
-	}()
+	var baseRun model.Run
+	var baseBinaries []runner.TestBinary
+	var baseRef string
+	var baseCommit gitx.Commit
 
-	// 4. Build base test binaries
-	baseBinaries, err := r.Build(ctx, runner.BuildSpec{
-		WorkDir:  wt.Location(),
-		Packages: cfg.Benchmarks.Packages,
-	})
-	if err != nil {
-		return CheckResult{}, fmt.Errorf("app: build base benchmark binaries: %w", err)
-	}
-	defer func() {
-		for _, b := range baseBinaries {
-			_ = b.Remove()
+	if mode == "stored" {
+		store := opts.BaselineStore
+		if store == nil {
+			if cfg.Baseline.Store == "git" {
+				branch := cfg.Baseline.Branch
+				if branch == "" {
+					branch = "perfguard-data"
+				}
+				store = baseline.NewGitStore(gitx.New(workDir), branch)
+			} else {
+				dir := cfg.Baseline.Dir
+				if dir == "" {
+					dir = filepath.Join(config.DefaultOutputDir, "baselines")
+				}
+				store = baseline.NewFSStore(dir)
+			}
 		}
-	}()
+
+		baseRef = opts.BaseRef
+		var loaded bool
+		if baseRef != "" {
+			if commit, err := gitClient.Resolve(ctx, baseRef); err == nil {
+				baseCommit = commit
+				if items, err := store.List(ctx, baseline.Filter{CommitSHA: commit.SHA}); err == nil && len(items) > 0 {
+					if r, err := store.Load(ctx, items[0].Key); err == nil {
+						baseRun = r
+						loaded = true
+					}
+				}
+			}
+		}
+
+		if !loaded {
+			items, err := store.List(ctx, baseline.Filter{})
+			if err != nil || len(items) == 0 {
+				return CheckResult{}, fmt.Errorf("app: no stored baseline found in %s", cfg.Baseline.Dir)
+			}
+			r, err := store.Load(ctx, items[0].Key)
+			if err != nil {
+				return CheckResult{}, fmt.Errorf("app: load stored baseline: %w", err)
+			}
+			baseRun = r
+			baseRef = baseRun.Git.Ref
+			baseCommit = gitx.Commit{SHA: baseRun.Git.SHA, Ref: baseRun.Git.Ref}
+		}
+	} else {
+		baseRef = opts.BaseRef
+		if baseRef == "" {
+			baseRef = cfg.Baseline.Branch
+		}
+		if baseRef == "" {
+			baseRef = "origin/main"
+		}
+
+		commit, err := gitClient.Resolve(ctx, baseRef)
+		if err != nil {
+			return CheckResult{}, fmt.Errorf("app: resolve base ref %s: %w", baseRef, err)
+		}
+		baseCommit = commit
+
+		// 3. Create temporary worktree for base
+		wt, err := gitClient.CreateWorktree(ctx, baseCommit)
+		if err != nil {
+			return CheckResult{}, fmt.Errorf("app: create worktree for base %s: %w", baseCommit.SHA, err)
+		}
+		defer func() {
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = wt.Remove(cleanupCtx)
+		}()
+
+		// 4. Build base test binaries
+		binaries, err := r.Build(ctx, runner.BuildSpec{
+			WorkDir:  wt.Location(),
+			Packages: cfg.Benchmarks.Packages,
+		})
+		if err != nil {
+			return CheckResult{}, fmt.Errorf("app: build base benchmark binaries: %w", err)
+		}
+		baseBinaries = binaries
+		defer func() {
+			for _, b := range baseBinaries {
+				_ = b.Remove()
+			}
+		}()
+	}
 
 	// 5. Build head test binaries
 	headBinaries, err := r.Build(ctx, runner.BuildSpec{
@@ -148,24 +213,26 @@ func Check(ctx context.Context, opts CheckOptions) (CheckResult, error) {
 		CPU:            cfg.Benchmarks.CPU,
 		Include:        cfg.Benchmarks.Include,
 		Exclude:        cfg.Benchmarks.Exclude,
-		Mode:           cfg.Execution.Mode,
+		Mode:           mode,
 		WarmupRuns:     cfg.Execution.WarmupRuns,
 		MaxExtraRuns:   cfg.Execution.MaxExtraRuns,
 		ExtraRoundStep: cfg.Execution.ExtraRoundStep,
 	}
 
-	baseRun := &model.Run{
-		SchemaVersion: model.CurrentSchemaVersion,
-		ID:            fmt.Sprintf("%s-base", runID),
-		Side:          model.SideBase,
-		CreatedAt:     time.Now().UTC(),
-		Git: model.GitInfo{
-			SHA:   baseCommit.SHA,
-			Ref:   baseRef,
-			Dirty: false,
-		},
-		Env:    env,
-		Params: runParams,
+	if mode != "stored" {
+		baseRun = model.Run{
+			SchemaVersion: model.CurrentSchemaVersion,
+			ID:            fmt.Sprintf("%s-base", runID),
+			Side:          model.SideBase,
+			CreatedAt:     time.Now().UTC(),
+			Git: model.GitInfo{
+				SHA:   baseCommit.SHA,
+				Ref:   baseRef,
+				Dirty: false,
+			},
+			Env:    env,
+			Params: runParams,
+		}
 	}
 
 	headRun := &model.Run{
@@ -179,9 +246,22 @@ func Check(ctx context.Context, opts CheckOptions) (CheckResult, error) {
 	}
 
 	// 7. Run rounds with adaptive sampling
-	cmp, err := RunWithAdaptiveSampling(ctx, r, baseBinaries, headBinaries, cfg, baseRun, headRun)
+	cmp, err := RunWithAdaptiveSampling(ctx, r, baseBinaries, headBinaries, cfg, &baseRun, headRun)
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("app: execute benchmark rounds: %w", err)
+	}
+
+	// In stored mode: verify environment and parameter compatibility
+	if mode == "stored" {
+		compat := baseline.Compatible(baseRun, *headRun)
+		if !compat.Compatible {
+			cmp.Verdict = model.VerdictInconclusive
+			cmp.Notes = append(cmp.Notes, compat.Diffs...)
+			for i := range cmp.Items {
+				cmp.Items[i].Status = model.StatusInconclusive
+				cmp.Items[i].Reason = model.ReasonEnvMismatch
+			}
+		}
 	}
 
 	// 8. Generate text report
@@ -195,7 +275,7 @@ func Check(ctx context.Context, opts CheckOptions) (CheckResult, error) {
 		outDir = filepath.Join(config.DefaultOutputDir, "runs", runID)
 	}
 
-	baseFile, err := writeRunJSON(outDir, "base.result.json", *baseRun)
+	baseFile, err := writeRunJSON(outDir, "base.result.json", baseRun)
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("app: save base result: %w", err)
 	}
@@ -217,7 +297,7 @@ func Check(ctx context.Context, opts CheckOptions) (CheckResult, error) {
 
 	return CheckResult{
 		Comparison:     cmp,
-		BaseRun:        *baseRun,
+		BaseRun:        baseRun,
 		HeadRun:        *headRun,
 		RunDir:         outDir,
 		ComparisonFile: compFile,
@@ -286,7 +366,9 @@ func RunWithAdaptiveSampling(
 		return model.Comparison{}, fmt.Errorf("app: execute initial rounds: %w", err)
 	}
 
-	baseRun.Benchmarks = results.BaseResults
+	if len(results.BaseResults) > 0 {
+		baseRun.Benchmarks = results.BaseResults
+	}
 	headRun.Benchmarks = results.HeadResults
 
 	// 2. Initial comparison
@@ -321,7 +403,9 @@ func RunWithAdaptiveSampling(
 			return cmp, fmt.Errorf("app: execute adaptive extra rounds: %w", err)
 		}
 
-		AppendBenchmarks(&baseRun.Benchmarks, extraResults.BaseResults)
+		if len(extraResults.BaseResults) > 0 {
+			AppendBenchmarks(&baseRun.Benchmarks, extraResults.BaseResults)
+		}
 		AppendBenchmarks(&headRun.Benchmarks, extraResults.HeadResults)
 		extraRuns += curStep
 

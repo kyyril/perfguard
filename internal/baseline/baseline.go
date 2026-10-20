@@ -121,13 +121,13 @@ func KeyFromRun(r model.Run) (Key, error) {
 	}, nil
 }
 
-// ComputeEnvHash calculates a deterministic 12-character hex hash from environment and run parameters.
+// ComputeEnvHash calculates a deterministic 12-character hex hash from environment and benchmark run parameters.
 func ComputeEnvHash(env model.Environment, params model.RunParams) string {
 	minor := parseGoMinorVersion(env.GoVersion)
 	excludeJoined := strings.Join(params.Exclude, ",")
-	payload := fmt.Sprintf("cpu:%s|gomaxprocs:%d|go:%s|count:%d|time:%s|cpu_flag:%d|inc:%s|exc:%s|mode:%s",
+	payload := fmt.Sprintf("cpu:%s|gomaxprocs:%d|go:%s|count:%d|time:%s|cpu_flag:%d|inc:%s|exc:%s",
 		env.CPUModel, env.GOMAXPROCS, minor,
-		params.Count, params.Benchtime, params.CPU, params.Include, excludeJoined, params.Mode,
+		params.Count, params.Benchtime, params.CPU, params.Include, excludeJoined,
 	)
 	h := sha256.Sum256([]byte(payload))
 	return hex.EncodeToString(h[:])[:12]

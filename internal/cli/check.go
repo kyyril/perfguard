@@ -18,6 +18,7 @@ type checkFlags struct {
 	failOn  string
 	strict  bool
 	format  string
+	mode    string
 }
 
 func newCheckCmd(globalOpts *GlobalOptions) *cobra.Command {
@@ -48,6 +49,7 @@ func newCheckCmd(globalOpts *GlobalOptions) *cobra.Command {
 			res, err := app.Check(cmd.Context(), app.CheckOptions{
 				Config:    cfg,
 				BaseRef:   flags.baseRef,
+				Mode:      flags.mode,
 				OutputDir: filepath.Join(outDir, "runs"),
 			})
 			if err != nil {
@@ -83,6 +85,7 @@ func newCheckCmd(globalOpts *GlobalOptions) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&flags.baseRef, "base", "", "Base git reference to compare against (defaults to config branch or origin/main)")
+	cmd.Flags().StringVar(&flags.mode, "mode", "", "Execution mode: 'same-runner' (default) or 'stored'")
 	cmd.Flags().StringVar(&flags.failOn, "fail-on", "fail", "Failure threshold for exit code 1: 'fail' or 'warn'")
 	cmd.Flags().BoolVar(&flags.strict, "strict", false, "Exit with code 4 on inconclusive verdict")
 	cmd.Flags().StringVar(&flags.format, "format", "text", "Report output format: 'text' or 'json'")

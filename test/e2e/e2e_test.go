@@ -690,3 +690,91 @@ execution:
 		t.Errorf("expected OVERALL VERDICT: PASS in quick start output, got: %s", string(output))
 	}
 }
+
+func TestE2E_BaselineAndStoredMode(t *testing.T) {
+	binPath := buildBinary(t)
+	repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+	// Step 1: Run baseline save on head side with fixture
+	// First generate head.result.json using perfguard run
+	headResult := filepath.Join(repoDir, "head.result.json")
+	cmdRun := exec.Command(binPath, "run", "--side", "head", "-o", headResult)
+	cmdRun.Dir = repoDir
+	if out, err := cmdRun.CombinedOutput(); err != nil {
+		t.Fatalf("perfguard run failed: %v\nOutput: %s", err, string(out))
+	}
+
+	// Save baseline from head.result.json
+	cmdSave := exec.Command(binPath, "baseline", "save", headResult)
+	cmdSave.Dir = repoDir
+	if out, err := cmdSave.CombinedOutput(); err != nil {
+		t.Fatalf("perfguard baseline save failed: %v\nOutput: %s", err, string(out))
+	}
+
+	// Verify baseline list
+	cmdList := exec.Command(binPath, "baseline", "list")
+	cmdList.Dir = repoDir
+	outList, err := cmdList.CombinedOutput()
+	if err != nil {
+		t.Fatalf("perfguard baseline list failed: %v\nOutput: %s", err, string(outList))
+	}
+	if !strings.Contains(string(outList), "COMMIT") {
+		t.Errorf("expected header COMMIT in list output, got: %s", string(outList))
+	}
+
+	// Step 2: Test matching environment stored check (AC-09 match)
+	cmdCheckMatch := exec.Command(binPath, "check", "--mode", "stored", "--base", baseSHA)
+	cmdCheckMatch.Dir = repoDir
+	outMatch, errMatch := cmdCheckMatch.CombinedOutput()
+	if errMatch != nil {
+		t.Fatalf("perfguard check --mode stored failed on matching env: %v\nOutput: %s", errMatch, string(outMatch))
+	}
+	if !strings.Contains(string(outMatch), "OVERALL VERDICT: PASS") {
+		t.Errorf("expected pass verdict on matching stored check, got: %s", string(outMatch))
+	}
+
+	// Step 3: Test AC-09 mismatch (different Go version)
+	data, err := os.ReadFile(headResult)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mutatedRun model.Run
+	if err := json.Unmarshal(data, &mutatedRun); err != nil {
+		t.Fatal(err)
+	}
+	mutatedRun.Env.GoVersion = "go1.20.0"
+	mutatedData, _ := json.Marshal(mutatedRun)
+	mismatchResult := filepath.Join(repoDir, "mismatch.result.json")
+	if err := os.WriteFile(mismatchResult, mutatedData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Save the mismatch baseline
+	cmdSaveMismatch := exec.Command(binPath, "baseline", "save", mismatchResult)
+	cmdSaveMismatch.Dir = repoDir
+	if out, err := cmdSaveMismatch.CombinedOutput(); err != nil {
+		t.Fatalf("save mismatch baseline failed: %v\nOutput: %s", err, string(out))
+	}
+
+	// Run check --mode stored with --strict: must exit with code 4 per AC-09
+	cmdStrict := exec.Command(binPath, "check", "--mode", "stored", "--strict", "--base", baseSHA)
+	cmdStrict.Dir = repoDir
+	outStrict, errStrict := cmdStrict.CombinedOutput()
+	if errStrict == nil {
+		t.Fatalf("expected non-zero exit code on environment mismatch with --strict, got 0\nOutput: %s", string(outStrict))
+	}
+	if exitErr, ok := errStrict.(*exec.ExitError); ok {
+		if exitErr.ExitCode() != 4 {
+			t.Errorf("expected exit code 4 (ExitInconclusive), got %d\nOutput: %s", exitErr.ExitCode(), string(outStrict))
+		}
+	} else {
+		t.Fatalf("expected *exec.ExitError, got %T", errStrict)
+	}
+
+	if !strings.Contains(string(outStrict), "INCONCLUSIVE") && !strings.Contains(string(outStrict), "inconclusive") {
+		t.Errorf("expected output to mention inconclusive, got: %s", string(outStrict))
+	}
+	if !strings.Contains(string(outStrict), "env_mismatch") && !strings.Contains(string(outStrict), "Go minor version mismatch") {
+		t.Errorf("expected output to mention env_mismatch or Go minor version mismatch, got: %s", string(outStrict))
+	}
+}
