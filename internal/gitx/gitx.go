@@ -120,6 +120,11 @@ func (w *Worktree) Remove(ctx context.Context) error {
 	return firstErr
 }
 
+// Location returns the filesystem path of the temporary worktree.
+func (w *Worktree) Location() string {
+	return w.Path
+}
+
 // ChangedFiles returns the list of file paths modified between base and head.
 func (c *Client) ChangedFiles(ctx context.Context, base, head Commit) ([]string, error) {
 	if base.SHA == head.SHA {

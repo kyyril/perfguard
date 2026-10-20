@@ -3,10 +3,14 @@ package app_test
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/kyyril/perfguard/internal/app"
 	"github.com/kyyril/perfguard/internal/config"
+	"github.com/kyyril/perfguard/internal/gitx"
 	"github.com/kyyril/perfguard/internal/model"
 	"github.com/kyyril/perfguard/internal/runner"
 )
@@ -269,6 +273,341 @@ func TestAdaptiveSampling_Errors(t *testing.T) {
 		_, err := app.RunWithAdaptiveSampling(context.Background(), r, nil, nil, cfg, baseRun, headRun)
 		if err == nil {
 			t.Fatal("expected error on extra round failure, got nil")
+		}
+	})
+}
+
+type fakeCheckWorktree struct {
+	path    string
+	removed bool
+}
+
+func (w *fakeCheckWorktree) Location() string {
+	return w.path
+}
+
+func (w *fakeCheckWorktree) Remove(_ context.Context) error {
+	w.removed = true
+	return nil
+}
+
+type fakeCheckVCS struct {
+	gitInfo       model.GitInfo
+	commit        gitx.Commit
+	worktree      *fakeCheckWorktree
+	errInfo       error
+	errResolve    error
+	errCreateWork error
+}
+
+func (v *fakeCheckVCS) CurrentInfo(_ context.Context) (model.GitInfo, error) {
+	if v.errInfo != nil {
+		return model.GitInfo{}, v.errInfo
+	}
+	return v.gitInfo, nil
+}
+
+func (v *fakeCheckVCS) Resolve(_ context.Context, _ string) (gitx.Commit, error) {
+	if v.errResolve != nil {
+		return gitx.Commit{}, v.errResolve
+	}
+	return v.commit, nil
+}
+
+func (v *fakeCheckVCS) CreateWorktree(_ context.Context, _ gitx.Commit) (app.Worktree, error) {
+	if v.errCreateWork != nil {
+		return nil, v.errCreateWork
+	}
+	return v.worktree, nil
+}
+
+func createDummyBinary(t *testing.T, dir, name string) runner.TestBinary {
+	t.Helper()
+	p := filepath.Join(dir, name)
+	if err := os.WriteFile(p, []byte("fake"), 0o600); err != nil {
+		t.Fatalf("failed creating dummy binary: %v", err)
+	}
+	return runner.TestBinary{
+		Package: "example.com/pkg",
+		Path:    p,
+		Dir:     dir,
+	}
+}
+
+type fakeCheckRunner struct {
+	baseBins      []runner.TestBinary
+	headBins      []runner.TestBinary
+	errBuildBase  error
+	errBuildHead  error
+	errRunRounds  error
+	roundResults  runner.RoundResults
+	buildCallDirs []string
+	onRunRounds   func()
+}
+
+func (r *fakeCheckRunner) Build(ctx context.Context, spec runner.BuildSpec) ([]runner.TestBinary, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.buildCallDirs = append(r.buildCallDirs, spec.WorkDir)
+	if len(r.buildCallDirs) == 1 {
+		// First call is base
+		if r.errBuildBase != nil {
+			return nil, r.errBuildBase
+		}
+		return r.baseBins, nil
+	}
+	// Second call is head
+	if r.errBuildHead != nil {
+		return nil, r.errBuildHead
+	}
+	return r.headBins, nil
+}
+
+func (r *fakeCheckRunner) Execute(_ context.Context, _ runner.TestBinary, _ runner.ExecSpec) (runner.RawOutput, error) {
+	return runner.RawOutput{}, nil
+}
+
+func (r *fakeCheckRunner) RunRounds(ctx context.Context, _ runner.RoundSpec) (runner.RoundResults, error) {
+	if r.onRunRounds != nil {
+		r.onRunRounds()
+	}
+	if err := ctx.Err(); err != nil {
+		return runner.RoundResults{}, err
+	}
+	if r.errRunRounds != nil {
+		return runner.RoundResults{}, r.errRunRounds
+	}
+	return r.roundResults, nil
+}
+
+func TestCheck_FullFlowSuccess(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	outDir := filepath.Join(tmpDir, "runs", "test-run")
+
+	wt := &fakeCheckWorktree{path: filepath.Join(tmpDir, "wt")}
+	vcs := &fakeCheckVCS{
+		gitInfo:  model.GitInfo{SHA: "headsha", Ref: "refs/heads/feat"},
+		commit:   gitx.Commit{SHA: "basesha", Ref: "refs/heads/main"},
+		worktree: wt,
+	}
+
+	binDir := t.TempDir()
+	baseBin := createDummyBinary(t, binDir, "base.test")
+	headBin := createDummyBinary(t, binDir, "head.test")
+
+	samples6 := []float64{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}
+	regressed6 := []float64{15.0, 15.0, 15.0, 15.0, 15.0, 15.0}
+
+	r := &fakeCheckRunner{
+		baseBins: []runner.TestBinary{baseBin},
+		headBins: []runner.TestBinary{headBin},
+		roundResults: runner.RoundResults{
+			BaseResults: []model.BenchmarkResult{createBenchmarkResult("BenchmarkWork", samples6)},
+			HeadResults: []model.BenchmarkResult{createBenchmarkResult("BenchmarkWork", regressed6)},
+		},
+	}
+
+	cfg := config.Default()
+	cfg.Benchmarks.Packages = []string{"./pkg"}
+	cfg.Benchmarks.Count = 6
+	cfg.Thresholds.MinSamples = 6
+
+	res, err := app.Check(context.Background(), app.CheckOptions{
+		Config:    cfg,
+		WorkDir:   tmpDir,
+		OutputDir: outDir,
+		Runner:    r,
+		Git:       vcs,
+	})
+	if err != nil {
+		t.Fatalf("app.Check failed: %v", err)
+	}
+
+	// 1. Check cleanups
+	if !wt.removed {
+		t.Error("expected worktree to be removed on completion")
+	}
+	if _, err := os.Stat(baseBin.Path); !os.IsNotExist(err) {
+		t.Errorf("expected base binary %s to be removed", baseBin.Path)
+	}
+	if _, err := os.Stat(headBin.Path); !os.IsNotExist(err) {
+		t.Errorf("expected head binary %s to be removed", headBin.Path)
+	}
+
+	// 2. Check verdict and comparison
+	if res.Comparison.Verdict != model.VerdictFail {
+		t.Errorf("expected fail verdict for +50%% regression, got %s", res.Comparison.Verdict)
+	}
+
+	// 3. Check artifacts written to disk
+	if _, err := os.Stat(res.ComparisonFile); err != nil {
+		t.Errorf("comparison file does not exist: %v", err)
+	}
+	if _, err := os.Stat(res.BaseFile); err != nil {
+		t.Errorf("base file does not exist: %v", err)
+	}
+	if _, err := os.Stat(res.HeadFile); err != nil {
+		t.Errorf("head file does not exist: %v", err)
+	}
+	reportPath := filepath.Join(outDir, "report.txt")
+	if _, err := os.Stat(reportPath); err != nil {
+		t.Errorf("report file does not exist: %v", err)
+	}
+
+	if !strings.Contains(res.ReportText, "OVERALL VERDICT: FAIL") {
+		t.Errorf("expected report text to mention OVERALL VERDICT: FAIL, got:\n%s", res.ReportText)
+	}
+}
+
+func TestCheck_FailuresAndCleanup(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+
+	t.Run("resolve failure", func(t *testing.T) {
+		vcs := &fakeCheckVCS{
+			errResolve: errors.New("cannot resolve base"),
+		}
+		_, err := app.Check(context.Background(), app.CheckOptions{
+			Git: vcs,
+		})
+		if err == nil {
+			t.Fatal("expected error on resolve failure, got nil")
+		}
+	})
+
+	t.Run("create worktree failure", func(t *testing.T) {
+		vcs := &fakeCheckVCS{
+			commit:        gitx.Commit{SHA: "base"},
+			errCreateWork: errors.New("cannot create worktree"),
+		}
+		_, err := app.Check(context.Background(), app.CheckOptions{
+			Git: vcs,
+		})
+		if err == nil {
+			t.Fatal("expected error on create worktree failure, got nil")
+		}
+	})
+
+	t.Run("build base failure cleans worktree", func(t *testing.T) {
+		wt := &fakeCheckWorktree{path: filepath.Join(tmpDir, "wt-buildbase")}
+		vcs := &fakeCheckVCS{
+			commit:   gitx.Commit{SHA: "base"},
+			worktree: wt,
+		}
+		r := &fakeCheckRunner{
+			errBuildBase: errors.New("build base failed"),
+		}
+
+		_, err := app.Check(context.Background(), app.CheckOptions{
+			Git:    vcs,
+			Runner: r,
+		})
+		if err == nil {
+			t.Fatal("expected error on build base failure, got nil")
+		}
+		if !wt.removed {
+			t.Error("expected worktree to be cleaned up when build base fails")
+		}
+	})
+
+	t.Run("build head failure cleans worktree and base binary", func(t *testing.T) {
+		wt := &fakeCheckWorktree{path: filepath.Join(tmpDir, "wt-buildhead")}
+		vcs := &fakeCheckVCS{
+			commit:   gitx.Commit{SHA: "base"},
+			worktree: wt,
+		}
+		binDir := t.TempDir()
+		baseBin := createDummyBinary(t, binDir, "base.test")
+		r := &fakeCheckRunner{
+			baseBins:     []runner.TestBinary{baseBin},
+			errBuildHead: errors.New("build head failed"),
+		}
+
+		_, err := app.Check(context.Background(), app.CheckOptions{
+			Git:    vcs,
+			Runner: r,
+		})
+		if err == nil {
+			t.Fatal("expected error on build head failure, got nil")
+		}
+		if !wt.removed {
+			t.Error("expected worktree to be cleaned up when build head fails")
+		}
+		if _, err := os.Stat(baseBin.Path); !os.IsNotExist(err) {
+			t.Errorf("expected base binary %s to be cleaned up", baseBin.Path)
+		}
+	})
+
+	t.Run("run rounds failure cleans worktree and both binaries", func(t *testing.T) {
+		wt := &fakeCheckWorktree{path: filepath.Join(tmpDir, "wt-runrounds")}
+		vcs := &fakeCheckVCS{
+			commit:   gitx.Commit{SHA: "base"},
+			worktree: wt,
+		}
+		binDir := t.TempDir()
+		baseBin := createDummyBinary(t, binDir, "base.test")
+		headBin := createDummyBinary(t, binDir, "head.test")
+		r := &fakeCheckRunner{
+			baseBins:     []runner.TestBinary{baseBin},
+			headBins:     []runner.TestBinary{headBin},
+			errRunRounds: errors.New("run rounds failed"),
+		}
+
+		_, err := app.Check(context.Background(), app.CheckOptions{
+			Git:    vcs,
+			Runner: r,
+		})
+		if err == nil {
+			t.Fatal("expected error on run rounds failure, got nil")
+		}
+		if !wt.removed {
+			t.Error("expected worktree to be cleaned up when run rounds fails")
+		}
+		if _, err := os.Stat(baseBin.Path); !os.IsNotExist(err) {
+			t.Errorf("expected base binary %s to be cleaned up", baseBin.Path)
+		}
+		if _, err := os.Stat(headBin.Path); !os.IsNotExist(err) {
+			t.Errorf("expected head binary %s to be cleaned up", headBin.Path)
+		}
+	})
+
+	t.Run("context cancelled cleans worktree and binaries", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		wt := &fakeCheckWorktree{path: filepath.Join(tmpDir, "wt-cancel")}
+		vcs := &fakeCheckVCS{
+			commit:   gitx.Commit{SHA: "base"},
+			worktree: wt,
+		}
+		binDir := t.TempDir()
+		baseBin := createDummyBinary(t, binDir, "base.test")
+		headBin := createDummyBinary(t, binDir, "head.test")
+		r := &fakeCheckRunner{
+			baseBins: []runner.TestBinary{baseBin},
+			headBins: []runner.TestBinary{headBin},
+			onRunRounds: func() {
+				cancel()
+			},
+		}
+
+		_, err := app.Check(ctx, app.CheckOptions{
+			Git:    vcs,
+			Runner: r,
+		})
+		if err == nil {
+			t.Fatal("expected error on cancelled context, got nil")
+		}
+		if !wt.removed {
+			t.Error("expected worktree to be cleaned up when context is cancelled")
+		}
+		if _, err := os.Stat(baseBin.Path); !os.IsNotExist(err) {
+			t.Errorf("expected base binary %s to be cleaned up", baseBin.Path)
+		}
+		if _, err := os.Stat(headBin.Path); !os.IsNotExist(err) {
+			t.Errorf("expected head binary %s to be cleaned up", headBin.Path)
 		}
 	})
 }

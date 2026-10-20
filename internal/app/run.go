@@ -50,7 +50,7 @@ func Run(ctx context.Context, opts RunOptions) (model.Run, string, error) {
 
 	gitClient := opts.Git
 	if gitClient == nil {
-		gitClient = gitx.New(workDir)
+		gitClient = &gitAdapter{client: gitx.New(workDir)}
 	}
 
 	runID := fmt.Sprintf("run-%d", time.Now().UnixNano())

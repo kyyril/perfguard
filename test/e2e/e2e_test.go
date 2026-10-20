@@ -340,4 +340,3 @@ func TestE2E_Compare(t *testing.T) {
 		t.Errorf("delta_pct mismatch: got %v, want %v", actualCmp.Items[0].DeltaPct, expectedCmp.Items[0].DeltaPct)
 	}
 }
-

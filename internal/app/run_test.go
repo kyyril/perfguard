@@ -61,6 +61,10 @@ func (f *fakeVCS) Resolve(_ context.Context, _ string) (gitx.Commit, error) {
 	return gitx.Commit{}, nil
 }
 
+func (f *fakeVCS) CreateWorktree(_ context.Context, _ gitx.Commit) (app.Worktree, error) {
+	return nil, nil
+}
+
 func sampleBenchmarkResults() []model.BenchmarkResult {
 	return []model.BenchmarkResult{
 		{
