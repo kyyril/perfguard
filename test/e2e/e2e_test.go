@@ -340,3 +340,292 @@ func TestE2E_Compare(t *testing.T) {
 		t.Errorf("delta_pct mismatch: got %v, want %v", actualCmp.Items[0].DeltaPct, expectedCmp.Items[0].DeltaPct)
 	}
 }
+
+func runGit(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %s failed: %v\nOutput: %s", strings.Join(args, " "), err, string(out))
+	}
+	return strings.TrimSpace(string(out))
+}
+
+func copyDir(t *testing.T, src, dst string) {
+	t.Helper()
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		t.Fatalf("read dir %s: %v", src, err)
+	}
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+		if entry.IsDir() {
+			if err := os.MkdirAll(dstPath, 0o750); err != nil {
+				t.Fatalf("mkdir %s: %v", dstPath, err)
+			}
+			copyDir(t, srcPath, dstPath)
+		} else {
+			data, err := os.ReadFile(srcPath)
+			if err != nil {
+				t.Fatalf("read file %s: %v", srcPath, err)
+			}
+			if err := os.WriteFile(dstPath, data, 0o600); err != nil {
+				t.Fatalf("write file %s: %v", dstPath, err)
+			}
+		}
+	}
+}
+
+func setupBenchmarkGitRepo(t *testing.T) (string, string) {
+	t.Helper()
+	repoDir := t.TempDir()
+
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", "perfguard-e2e@example.com")
+	runGit(t, repoDir, "config", "user.name", "PerfGuard E2E")
+	runGit(t, repoDir, "config", "commit.gpgsign", "false")
+	runGit(t, repoDir, "config", "core.autocrlf", "false")
+
+	fixtureDir, err := filepath.Abs("../../testdata/fixtures/benchmod")
+	if err != nil {
+		t.Fatalf("resolve fixture dir: %v", err)
+	}
+	copyDir(t, fixtureDir, repoDir)
+
+	cfgContent := `version: 1
+benchmarks:
+  packages: ["./pkgwithtests"]
+  count: 6
+  benchtime: "10ms"
+thresholds:
+  min_samples: 6
+execution:
+  warmup_runs: 0
+`
+	if err := os.WriteFile(filepath.Join(repoDir, "perfguard.yaml"), []byte(cfgContent), 0o600); err != nil {
+		t.Fatalf("write perfguard.yaml: %v", err)
+	}
+
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "commit", "-m", "initial benchmark base")
+	baseSHA := runGit(t, repoDir, "rev-parse", "HEAD")
+
+	return repoDir, baseSHA
+}
+
+func TestE2E_Check(t *testing.T) {
+	binPath := buildBinary(t)
+
+	t.Run("exit code 0 on no regression", func(t *testing.T) {
+		repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+		cmd := exec.Command(binPath, "check", "--base", baseSHA)
+		cmd.Dir = repoDir
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("expected exit code 0 on pass, got error: %v\nOutput: %s", err, string(output))
+		}
+		if !strings.Contains(string(output), "OVERALL VERDICT: PASS") {
+			t.Errorf("expected pass verdict in output, got: %s", string(output))
+		}
+	})
+
+	t.Run("exit code 1 on regression", func(t *testing.T) {
+		repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+		// Introduce 100x slowdown regression
+		workFile := filepath.Join(repoDir, "pkgwithtests", "work.go")
+		slowContent := `package pkgwithtests
+
+func DoWork() int {
+	sum := 0
+	for i := 0; i < 20000; i++ {
+		sum += i
+	}
+	return sum
+}
+`
+		if err := os.WriteFile(workFile, []byte(slowContent), 0o600); err != nil {
+			t.Fatalf("failed writing slow code: %v", err)
+		}
+
+		cmd := exec.Command(binPath, "check", "--base", baseSHA)
+		cmd.Dir = repoDir
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("expected non-zero exit code on regression, got success\nOutput: %s", string(output))
+		}
+
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			t.Fatalf("expected *exec.ExitError, got: %T", err)
+		}
+		if exitErr.ExitCode() != 1 {
+			t.Errorf("expected exit code 1, got %d", exitErr.ExitCode())
+		}
+		if !strings.Contains(string(output), "OVERALL VERDICT: FAIL") {
+			t.Errorf("expected output to mention OVERALL VERDICT: FAIL, got: %s", string(output))
+		}
+		if !strings.Contains(string(output), "BenchmarkFast") {
+			t.Errorf("expected output to mention BenchmarkFast, got: %s", string(output))
+		}
+	})
+
+	t.Run("exit code 1 on fail-on warn", func(t *testing.T) {
+		repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+		// Set warn threshold very low (0.01%) and fail threshold very high (500%)
+		// so that slight variation yields warn verdict
+		cfgContent := `version: 1
+benchmarks:
+  packages: ["./pkgwithtests"]
+  count: 6
+  benchtime: "10ms"
+thresholds:
+  min_samples: 6
+  overrides:
+    - match: ".*"
+      metric: "sec/op"
+      warn: 0.001
+      fail: 500.0
+execution:
+  warmup_runs: 0
+`
+		if err := os.WriteFile(filepath.Join(repoDir, "perfguard.yaml"), []byte(cfgContent), 0o600); err != nil {
+			t.Fatalf("write perfguard.yaml: %v", err)
+		}
+
+		// Make head slightly slower (e.g. 150 iterations instead of 100)
+		workFile := filepath.Join(repoDir, "pkgwithtests", "work.go")
+		modContent := `package pkgwithtests
+
+func DoWork() int {
+	sum := 0
+	for i := 0; i < 150; i++ {
+		sum += i
+	}
+	return sum
+}
+`
+		if err := os.WriteFile(workFile, []byte(modContent), 0o600); err != nil {
+			t.Fatalf("failed writing mod work: %v", err)
+		}
+
+		// With --fail-on warn: must exit 1
+		cmdWarn := exec.Command(binPath, "check", "--base", baseSHA, "--fail-on", "warn")
+		cmdWarn.Dir = repoDir
+		outWarn, errWarn := cmdWarn.CombinedOutput()
+		if errWarn == nil {
+			t.Fatalf("expected non-zero exit code with --fail-on warn, got 0\nOutput: %s", string(outWarn))
+		}
+		if exitErr, ok := errWarn.(*exec.ExitError); ok {
+			if exitErr.ExitCode() != 1 {
+				t.Errorf("expected exit code 1 with --fail-on warn, got %d", exitErr.ExitCode())
+			}
+		}
+
+		// With --fail-on fail: must exit 0
+		cmdFail := exec.Command(binPath, "check", "--base", baseSHA, "--fail-on", "fail")
+		cmdFail.Dir = repoDir
+		outFail, errFail := cmdFail.CombinedOutput()
+		if errFail != nil {
+			t.Fatalf("expected exit code 0 with --fail-on fail, got %v\nOutput: %s", errFail, string(outFail))
+		}
+	})
+
+	t.Run("exit code 2 on invalid config", func(t *testing.T) {
+		repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+		badCfg := filepath.Join(repoDir, "bad.yaml")
+		_ = os.WriteFile(badCfg, []byte("version: 1\nbenchmarks:\n  count: -5\n"), 0o600)
+
+		cmd := exec.Command(binPath, "check", "--config", badCfg, "--base", baseSHA)
+		cmd.Dir = repoDir
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("expected error on invalid config, got nil\nOutput: %s", string(output))
+		}
+
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			t.Fatalf("expected *exec.ExitError, got: %T", err)
+		}
+		if exitErr.ExitCode() != 2 {
+			t.Errorf("expected exit code 2 (ExitConfig), got %d", exitErr.ExitCode())
+		}
+		if !strings.Contains(string(output), "benchmarks.count") {
+			t.Errorf("expected message to mention 'benchmarks.count', got: %s", string(output))
+		}
+	})
+
+	t.Run("exit code 3 on build failure on head", func(t *testing.T) {
+		repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+		// Break syntax in head
+		workFile := filepath.Join(repoDir, "pkgwithtests", "work.go")
+		brokenCode := `package pkgwithtests
+invalid syntax here !!!
+`
+		_ = os.WriteFile(workFile, []byte(brokenCode), 0o600)
+
+		cmd := exec.Command(binPath, "check", "--base", baseSHA)
+		cmd.Dir = repoDir
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("expected build failure, got success\nOutput: %s", string(output))
+		}
+
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			t.Fatalf("expected *exec.ExitError, got: %T", err)
+		}
+		if exitErr.ExitCode() != 3 {
+			t.Errorf("expected exit code 3 (ExitExecution), got %d\nOutput: %s", exitErr.ExitCode(), string(output))
+		}
+	})
+
+	t.Run("exit code 4 on strict with noisy result", func(t *testing.T) {
+		repoDir, baseSHA := setupBenchmarkGitRepo(t)
+
+		// Set max_cv to impossible threshold so result is marked noisy/inconclusive
+		noisyCfg := `version: 1
+benchmarks:
+  packages: ["./pkgwithtests"]
+  count: 6
+  benchtime: "10ms"
+thresholds:
+  min_samples: 6
+noise:
+  max_cv: 0.0000001
+  on_noisy: "inconclusive"
+execution:
+  warmup_runs: 0
+  max_extra_runs: 0
+`
+		_ = os.WriteFile(filepath.Join(repoDir, "perfguard.yaml"), []byte(noisyCfg), 0o600)
+
+		// With --strict: exit code 4
+		cmdStrict := exec.Command(binPath, "check", "--base", baseSHA, "--strict")
+		cmdStrict.Dir = repoDir
+		outStrict, errStrict := cmdStrict.CombinedOutput()
+		if errStrict == nil {
+			t.Fatalf("expected exit code 4 with --strict on noisy, got 0\nOutput: %s", string(outStrict))
+		}
+		if exitErr, ok := errStrict.(*exec.ExitError); ok {
+			if exitErr.ExitCode() != 4 {
+				t.Errorf("expected exit code 4 (ExitInconclusive), got %d\nOutput: %s", exitErr.ExitCode(), string(outStrict))
+			}
+		}
+
+		// Without --strict: exit code 0
+		cmdNonStrict := exec.Command(binPath, "check", "--base", baseSHA)
+		cmdNonStrict.Dir = repoDir
+		outNonStrict, errNonStrict := cmdNonStrict.CombinedOutput()
+		if errNonStrict != nil {
+			t.Fatalf("expected exit code 0 without --strict, got error: %v\nOutput: %s", errNonStrict, string(outNonStrict))
+		}
+	})
+}
+
