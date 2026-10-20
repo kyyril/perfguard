@@ -37,7 +37,7 @@ Rules:
 |---|---|---|
 | P0 Foundation | 5 | 5 |
 | P1 Parsing and environment | 3 | 3 |
-| P2 Runner | 2 | 5 |
+| P2 Runner | 3 | 5 |
 | P3 Statistics and decision | 0 | 6 |
 | P4 Check end-to-end | 0 | 3 |
 | P5 Baseline | 0 | 4 |
@@ -72,7 +72,7 @@ Update this table whenever a status changes.
 |---|---|---|---|---|---|---|
 | P2-T1 | `[x]` | Build test binary per package (`go test -c`) for base and head | P1-T3 | `internal/runner` (build) | Integration test: binary produced for fixture module, packages without tests are skipped, build error maps to `ErrExecution` | `make check` and integration tests pass, benchmod fixture tested, commit c428e4c |
 | P2-T2 | `[x]` | Binary execution: context, timeout, process group, capture output, env allowlist | P2-T1 | `internal/runner` (execute) | Test: timeout stops child processes, SIGINT cleans up, secrets from env are not forwarded | `make check` and integration tests pass, timeout, panic, env allowlist verified, commit 751898c |
-| P2-T3 | `[ ]` | Interleaved round orchestration and warmup | P2-T2, P1-T1 | `internal/runner` (rounds) | Test with fake runner: base and head order alternates each round, sample count equals exactly `count` | |
+| P2-T3 | `[x]` | Interleaved round orchestration and warmup | P2-T2, P1-T1 | `internal/runner` (rounds) | Test with fake runner: base and head order alternates each round, sample count equals exactly `count` | `make check` and integration tests pass, alternating rounds and sample count verified, commit 985f855 |
 | P2-T4 | `[ ]` | Preflight noise, optional CPU pinning | P1-T2, P2-T2 | Warning in report, Linux affinity | Test: high load produces a warning. Pinning is ignored with a message on non-Linux | |
 | P2-T5 | `[ ]` | `perfguard run` writes `result.json` | P2-T3, P0-T5 | `run` command | E2e test on fixture module: `result.json` is valid against schema, contains SHA, env, params, samples | |
 
