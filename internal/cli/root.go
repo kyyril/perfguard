@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kyyril/perfguard/internal/config"
 	"github.com/spf13/cobra"
@@ -39,6 +40,7 @@ func NewRootCommand() *cobra.Command {
 
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newInitCmd(opts))
+	rootCmd.AddCommand(newRunCmd(opts))
 
 	return rootCmd
 }
@@ -47,6 +49,7 @@ func NewRootCommand() *cobra.Command {
 func Execute(ctx context.Context) int {
 	cmd := NewRootCommand()
 	if err := cmd.ExecuteContext(ctx); err != nil {
+		fmt.Fprintln(cmd.ErrOrStderr(), err)
 		return ExitCode(err)
 	}
 	return ExitPass
