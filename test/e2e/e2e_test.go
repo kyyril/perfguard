@@ -5,5 +5,5 @@ package e2e
 import "testing"
 
 func TestE2ESmoke(t *testing.T) {
-	// Smoke test for e2e tag.
+	t.Log("e2e smoke test")
 }
