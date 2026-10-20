@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kyyril/perfguard/schemas/config.v1.json",
+  "title": "PerfGuardConfig",
+  "description": "Configuration schema for PerfGuard (perfguard.yaml)",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "benchmarks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "packages": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "include": { "type": "string" },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "count": { "type": "integer", "minimum": 1 },
+        "benchtime": { "type": "string" },
+        "cpu": { "type": "integer", "minimum": 0 },
+        "timeout": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["same-runner", "stored"]
+        },
+        "interleave": { "type": "boolean" },
+        "warmup_runs": { "type": "integer", "minimum": 0 },
+        "max_extra_runs": { "type": "integer", "minimum": 0 },
+        "extra_round_step": { "type": "integer", "minimum": 1 },
+        "pin_cpus": { "type": "string" }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alpha": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+        "min_samples": { "type": "integer", "minimum": 2 },
+        "correction": {
+          "type": "string",
+          "enum": ["none", "holm"]
+        },
+        "zero_base": {
+          "type": "string",
+          "enum": ["warn", "fail"]
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["warn", "fail"],
+            "additionalProperties": false,
+            "properties": {
+              "warn": { "type": "number", "minimum": 0 },
+              "fail": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "custom": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["warn", "fail", "direction"],
+            "additionalProperties": false,
+            "properties": {
+              "warn": { "type": "number", "minimum": 0 },
+              "fail": { "type": "number", "minimum": 0 },
+              "direction": {
+                "type": "string",
+                "enum": ["lower_is_better", "higher_is_better"]
+              }
+            }
+          }
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["match", "metric", "warn", "fail"],
+            "additionalProperties": false,
+            "properties": {
+              "match": { "type": "string" },
+              "metric": { "type": "string" },
+              "warn": { "type": "number", "minimum": 0 },
+              "fail": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "noise": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_cv": { "type": "number", "minimum": 0 },
+        "on_noisy": {
+          "type": "string",
+          "enum": ["inconclusive", "warn"]
+        }
+      }
+    },
+    "profiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["off", "on-regression", "always"]
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["cpu", "allocs", "mutex", "block"]
+          }
+        },
+        "runs": { "type": "integer", "minimum": 1 },
+        "min_share": { "type": "number", "minimum": 0 },
+        "min_samples": { "type": "integer", "minimum": 1 },
+        "top": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "store": {
+          "type": "string",
+          "enum": ["fs", "git"]
+        },
+        "branch": { "type": "string" },
+        "dir": { "type": "string" }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["text", "json", "md", "github"]
+          }
+        }
+      }
+    },
+    "github": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "comment": { "type": "boolean" },
+        "step_summary": { "type": "boolean" }
+      }
+    }
+  }
+}
