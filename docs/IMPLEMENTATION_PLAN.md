@@ -38,7 +38,7 @@ Rules:
 | P0 Foundation | 5 | 5 |
 | P1 Parsing and environment | 3 | 3 |
 | P2 Runner | 5 | 5 |
-| P3 Statistics and decision | 0 | 6 |
+| P3 Statistics and decision | 1 | 6 |
 | P4 Check end-to-end | 0 | 3 |
 | P5 Baseline | 0 | 4 |
 | P6 GitHub integration | 0 | 6 |
@@ -80,7 +80,7 @@ Update this table whenever a status changes.
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P3-T1 | `[ ]` | `stats`: median, CV, Mann-Whitney U, bootstrap CI with seed | P0-T2 | `internal/stats` | Results match reference values in `testdata/stats/` within documented tolerance. Empty, identical, zero, NaN cases handled | |
+| P3-T1 | `[x]` | `stats`: median, CV, Mann-Whitney U, bootstrap CI with seed | P0-T2 | `internal/stats` | Results match reference values in `testdata/stats/` within documented tolerance. Empty, identical, zero, NaN cases handled | `make check` passes, 95% test coverage, reference tests match testdata/stats/reference.json, commit 2a69021 |
 | P3-T2 | `[ ]` | `decision`: 11 rules, verdict, reason codes | P3-T1, P0-T3 | `internal/decision` | One table test per rule. Rule order matches ARCHITECTURE. Worst verdict selected correctly | |
 | P3-T3 | `[ ]` | Adaptive samples for noisy metrics | P3-T2, P2-T3 | Loop in `app.Check` | Test with fake runner: samples increase up to the limit, then status follows `on_noisy` | |
 | P3-T4 | `[ ]` | Synthetic A/A and shift simulation as test gate | P3-T2 | Seeded simulation test | False positive rate and power meet thresholds in TESTING. Distributions: normal, lognormal, bimodal, drift | |
@@ -178,3 +178,4 @@ Record important verification results here (brief, with date and commit).
 | 2026-10-20 | P2-T3 | runner round orchestration with alternating interleaved execution (commit 985f855) |
 | 2026-10-20 | P2-T4 | runner preflight noise checks and CPU pinning validation (commit 5249d25) |
 | 2026-10-20 | P2-T5 | perfguard run command writes result.json, schema validation and e2e tests pass (commit aed4934) |
+| 2026-10-20 | P3-T1 | stats package with median, CV, Mann-Whitney U, and bootstrap CI; reference values verified against scipy (commit 2a69021) |
