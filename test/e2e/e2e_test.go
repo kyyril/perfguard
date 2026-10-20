@@ -690,4 +690,3 @@ execution:
 		t.Errorf("expected OVERALL VERDICT: PASS in quick start output, got: %s", string(output))
 	}
 }
-

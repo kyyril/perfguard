@@ -40,7 +40,7 @@ Rules:
 | P2 Runner | 5 | 5 |
 | P3 Statistics and decision | 6 | 6 |
 | P4 Check end-to-end | 3 | 3 |
-| P5 Baseline | 0 | 4 |
+| P5 Baseline | 1 | 4 |
 | P6 GitHub integration | 0 | 6 |
 | P7 Diagnosis | 0 | 7 |
 | P8 Evaluation suite | 0 | 7 |
@@ -99,7 +99,7 @@ Update this table whenever a status changes.
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P5-T1 | `[ ]` | `BaselineStore` interface and `fs` store | P0-T2 | `internal/baseline` | Tests for save, load, list, prune. Atomic write (temp file then rename) | |
+| P5-T1 | `[x]` | `BaselineStore` interface and `fs` store | P0-T2 | `internal/baseline` | Tests for save, load, list, prune. Atomic write (temp file then rename) | `make check` passes, 90.3% coverage in `internal/baseline`, save, load, list, prune, and atomic writes tested |
 | P5-T2 | `[ ]` | `git` store on orphan branch | P5-T1, P1-T3 | `git` store | Integration test: branch created, push-free (local), data reloadable | |
 | P5-T3 | `[ ]` | Environment compatibility check | P5-T1, P1-T2 | `Compatible` function | Table test: each different field yields `env_mismatch` and a list of differences | |
 | P5-T4 | `[ ]` | `baseline` command and `check --mode stored` | P5-T2, P5-T3, P4-T2 | CLI | E2e test for AC-09 | |
