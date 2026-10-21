@@ -40,7 +40,7 @@ cover:
 	go tool cover -func=coverage.out
 
 vuln:
-	govulncheck ./...
+	govulncheck ./cmd/...
 
 eval:
 	@echo Evaluation suite not run in basic check

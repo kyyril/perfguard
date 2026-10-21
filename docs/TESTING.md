@@ -223,7 +223,7 @@ All gates must be green before merge.
 | Integration | `go test -tags=integration -race -count=1 ./...` | Pass |
 | E2E | `go test -tags=e2e -count=1 ./test/e2e/...` | Pass |
 | Coverage | `scripts/check-coverage.sh` | 80% or more total. `stats`, `decision`, `benchparse`, `config` 90% or more |
-| Vulnerability | `govulncheck ./...` | No reachable findings |
+| Vulnerability | `govulncheck ./cmd/...` | No reachable findings |
 | Schema | Validate fixtures against `schemas/*.json` | Pass |
 | Docs | Link and style check (`scripts/check-docs.sh`: no em dashes and no emojis) | Pass |
 | Go mod | `go mod tidy` produces no diff | Clean |

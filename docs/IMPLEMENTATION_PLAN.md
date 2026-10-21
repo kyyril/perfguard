@@ -109,7 +109,7 @@ Update this table whenever a status changes.
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
 | P6-T1 | `[x]` | `md` and `github` renderers | P3-T6 | `internal/report` | Golden tests. Markdown valid and does not exceed GitHub comment length limit (truncated with notice) | `make check` passes, 84.9% coverage in `internal/report`, golden tests match for md and github formats, comment truncation tested |
-| P6-T2 | `[ ]` | `ghci`: upsert PR comment with marker | P6-T1 | `internal/ghci` | Test with `httptest`: publishing twice results in one comment | |
+| P6-T2 | `[x]` | `ghci`: upsert PR comment with marker | P6-T1 | `internal/ghci` | Test with `httptest`: publishing twice results in one comment | `make check` passes, 82.7% coverage in `internal/ghci`, TestPublishComment_PublishTwiceResultsInOneComment verifies upsert behavior with httptest |
 | P6-T3 | `[ ]` | Step summary | P6-T1 | Write to `$GITHUB_STEP_SUMMARY` | Test with temp file | |
 | P6-T4 | `[ ]` | `action.yml` composite and artifact upload | P6-T2, P6-T3, P4-T3 | `action.yml` | Workflow on example repo runs green on a test PR | |
 | P6-T5 | `[ ]` | Fork PR fallback | P6-T2 | Fork detection from payload | Test: fork payload does not call write API and job does not fail (AC-07) | |
