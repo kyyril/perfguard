@@ -24,6 +24,10 @@ func Render(w io.Writer, cmp model.Comparison, format Format) error {
 		return RenderText(w, cmp)
 	case FormatJSON:
 		return RenderJSON(w, cmp)
+	case FormatMD:
+		return RenderMD(w, cmp)
+	case FormatGitHub:
+		return RenderGitHub(w, cmp)
 	default:
 		return fmt.Errorf("report: unsupported format %q", format)
 	}

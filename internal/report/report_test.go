@@ -3,8 +3,10 @@ package report_test
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -251,6 +253,26 @@ func TestRender_Golden(t *testing.T) {
 				return buf.Bytes(), err
 			},
 		},
+		{
+			name:      "md",
+			format:    report.FormatMD,
+			extension: ".md.golden",
+			renderFn: func(cmp model.Comparison) ([]byte, error) {
+				var buf bytes.Buffer
+				err := report.RenderMD(&buf, cmp)
+				return buf.Bytes(), err
+			},
+		},
+		{
+			name:      "github",
+			format:    report.FormatGitHub,
+			extension: ".github.golden",
+			renderFn: func(cmp model.Comparison) ([]byte, error) {
+				var buf bytes.Buffer
+				err := report.RenderGitHub(&buf, cmp)
+				return buf.Bytes(), err
+			},
+		},
 	}
 
 	for caseName, cmp := range scenarios {
@@ -317,5 +339,116 @@ func TestRender_DefaultFormat(t *testing.T) {
 	}
 	if !bytes.Contains(buf.Bytes(), []byte("OVERALL VERDICT: PASS")) {
 		t.Errorf("expected text output on default format, got %s", buf.String())
+	}
+}
+
+func TestRenderGitHub_Truncation_SmallLimit(t *testing.T) {
+	t.Parallel()
+
+	cmp := makeBaseComparison("trunc-small")
+	cmp.Verdict = model.VerdictPass
+	for i := 0; i < 20; i++ {
+		cmp.Items = append(cmp.Items, model.MetricComparison{
+			Benchmark:  fmt.Sprintf("BenchmarkItem%03d", i),
+			Metric:     "sec/op",
+			BaseMedian: 100.0,
+			HeadMedian: 100.5,
+			DeltaPct:   0.5,
+			PValue:     0.8500,
+			Status:     model.StatusUnchanged,
+			Reason:     model.ReasonNotSignificant,
+		})
+	}
+
+	var buf bytes.Buffer
+	const limit = 600
+	err := report.RenderGitHubWithLimit(&buf, cmp, limit)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	content := buf.String()
+	if len(content) > limit {
+		t.Errorf("output length %d exceeds limit %d", len(content), limit)
+	}
+	if !strings.HasPrefix(content, report.CommentMarker) {
+		t.Errorf("expected comment marker at start, got %s", content[:50])
+	}
+	if !strings.Contains(content, strings.TrimSpace(report.TruncationNotice)) {
+		t.Errorf("expected truncation notice in output")
+	}
+}
+
+func TestRenderGitHub_Truncation_MaxCommentLength(t *testing.T) {
+	t.Parallel()
+
+	cmp := makeBaseComparison("trunc-large")
+	cmp.Verdict = model.VerdictFail
+	// 2000 items would generate ~200KB of markdown without truncation
+	for i := 0; i < 2000; i++ {
+		cmp.Items = append(cmp.Items, model.MetricComparison{
+			Benchmark:  fmt.Sprintf("BenchmarkVeryLongBenchmarkNameForTruncationTesting%04d", i),
+			Metric:     "sec/op",
+			BaseMedian: 100.0,
+			HeadMedian: 125.0,
+			DeltaPct:   25.0,
+			PValue:     0.0001,
+			Status:     model.StatusFail,
+			Reason:     model.ReasonExceedsFail,
+		})
+	}
+	cmp.Notes = []string{"Note that will be evaluated"}
+	cmp.Diagnosis = []model.Diagnosis{
+		{
+			Benchmark:   "BenchmarkVeryLongBenchmarkNameForTruncationTesting0001",
+			ProfileType: "cpu",
+			Candidates: []model.Candidate{
+				{
+					Function:  "example.com/pkg.Grow",
+					FlatDelta: 10.0,
+					CumDelta:  15.0,
+					Touched:   true,
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	err := report.RenderGitHub(&buf, cmp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	content := buf.String()
+	if len(content) > report.MaxGitHubCommentLength {
+		t.Errorf("output length %d exceeds MaxGitHubCommentLength %d", len(content), report.MaxGitHubCommentLength)
+	}
+	if !strings.HasPrefix(content, report.CommentMarker) {
+		t.Errorf("expected comment marker at start")
+	}
+	if !strings.Contains(content, strings.TrimSpace(report.TruncationNotice)) {
+		t.Errorf("expected truncation notice in output")
+	}
+
+	// Verify that table rows are intact (valid markdown table)
+	lines := strings.Split(content, "\n")
+	tableStarted := false
+	for _, line := range lines {
+		if strings.HasPrefix(line, "| Benchmark |") {
+			tableStarted = true
+			continue
+		}
+		if tableStarted {
+			if strings.HasPrefix(line, "|") {
+				// Must have 8 columns (9 pipe separators)
+				pipeCount := strings.Count(line, "|")
+				if pipeCount != 9 {
+					t.Errorf("broken table row with %d pipes: %s", pipeCount, line)
+				}
+			} else if line == "" || strings.HasPrefix(line, "*") {
+				// Reached end of table or notice
+				break
+			}
+		}
 	}
 }

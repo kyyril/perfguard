@@ -108,7 +108,7 @@ Update this table whenever a status changes.
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P6-T1 | `[ ]` | `md` and `github` renderers | P3-T6 | `internal/report` | Golden tests. Markdown valid and does not exceed GitHub comment length limit (truncated with notice) | |
+| P6-T1 | `[x]` | `md` and `github` renderers | P3-T6 | `internal/report` | Golden tests. Markdown valid and does not exceed GitHub comment length limit (truncated with notice) | `make check` passes, 84.9% coverage in `internal/report`, golden tests match for md and github formats, comment truncation tested |
 | P6-T2 | `[ ]` | `ghci`: upsert PR comment with marker | P6-T1 | `internal/ghci` | Test with `httptest`: publishing twice results in one comment | |
 | P6-T3 | `[ ]` | Step summary | P6-T1 | Write to `$GITHUB_STEP_SUMMARY` | Test with temp file | |
 | P6-T4 | `[ ]` | `action.yml` composite and artifact upload | P6-T2, P6-T3, P4-T3 | `action.yml` | Workflow on example repo runs green on a test PR | |

@@ -1,0 +1,8 @@
+## PerfGuard: PASS
+
+Base: 1111111 (origin/main)  
+Head: 7777777 (feat/improve)
+
+| Benchmark | Metric | Base | Head | Delta | P-Value | Status | Reason |
+|---|---|---|---|---|---|---|---|
+| BenchmarkLegacy | sec/op | 80.00 | - | - | - | removed | removed_benchmark |

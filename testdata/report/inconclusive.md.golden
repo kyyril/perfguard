@@ -1,0 +1,12 @@
+## PerfGuard: INCONCLUSIVE
+
+Base: 1111111 (origin/main)  
+Head: 7777777 (feat/improve)
+
+| Benchmark | Metric | Base | Head | Delta | P-Value | Status | Reason |
+|---|---|---|---|---|---|---|---|
+| BenchmarkFlaky | sec/op | 150.00 | 155.00 | +3.33% | - | inconclusive | noisy |
+
+### Notes
+
+- CPU model difference: AMD EPYC vs Intel Xeon

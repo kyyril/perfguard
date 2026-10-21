@@ -1,0 +1,19 @@
+<!-- perfguard:comment -->
+
+## PerfGuard: FAIL
+
+Base: 1111111 (origin/main)  
+Head: 7777777 (feat/improve)
+
+| Benchmark | Metric | Base | Head | Delta | P-Value | Status | Reason |
+|---|---|---|---|---|---|---|---|
+| BenchmarkEncode | sec/op | 100.00 | 125.00 | +25.00% | 0.0001 | fail | exceeds_fail |
+
+### Contributor candidates
+
+#### BenchmarkEncode (cpu)
+
+| Function | Flat delta | Cum delta | Changed by PR |
+|---|---|---|---|
+| example.com/pkg.GrowBuffer | +15.20 | +22.40 | yes |
+| runtime.mallocgc | +8.50 | +8.50 | no |
