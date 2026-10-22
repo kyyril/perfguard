@@ -119,7 +119,7 @@ Update this table whenever a status changes.
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P7-T1 | `[ ]` | Profile pass: profile flags, `-test.benchtime=Nx`, one benchmark per execution | P2-T2, P3-T2 | `internal/profile` (collect) | Integration test: valid `.pb.gz` profiles produced for each type | |
+| P7-T1 | `[x]` | Profile pass: profile flags, `-test.benchtime=Nx`, one benchmark per execution | P2-T2, P3-T2 | `internal/profile` (collect) | Integration test: valid `.pb.gz` profiles produced for each type | `make check` and `make test-integration` pass, 92.5% coverage in `internal/profile`, TestIntegration_ProfileCollectionProducesValidProfiles verifies valid `.pb.gz` profiles for cpu, allocs, mutex, and block |
 | P7-T2 | `[ ]` | Load, merge, normalize per operation | P7-T1 | `internal/profile` (load) | Test with synthetic profiles: per-op values match manual calculation | |
 | P7-T3 | `[ ]` | Flat and cum diff, `min_share` filter, candidate ranking | P7-T2 | `internal/profile` (diff) | Table test with synthetic profiles and known results | |
 | P7-T4 | `[ ]` | Annotation of files changed by the PR | P7-T3, P1-T3 | `touched` field in diagnosis | Test: functions in changed files are marked, others are not | |

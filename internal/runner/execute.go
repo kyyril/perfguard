@@ -11,11 +11,17 @@ import (
 
 // ExecSpec defines runtime parameters for a single benchmark process execution.
 type ExecSpec struct {
-	BenchRegex string        // regex for -test.bench (default ".")
-	Benchtime  string        // e.g. "1s" or "100x"
-	CPU        int           // GOMAXPROCS (0 means system default)
-	Timeout    time.Duration // process timeout
-	ExtraEnv   []string      // custom non-secret env vars
+	BenchRegex    string        // regex for -test.bench (default ".")
+	Benchtime     string        // e.g. "1s" or "100x"
+	CPU           int           // GOMAXPROCS (0 means system default)
+	Timeout       time.Duration // process timeout
+	ExtraEnv      []string      // custom non-secret env vars
+	CPUProfile    string        // target path for -test.cpuprofile
+	MemProfile    string        // target path for -test.memprofile
+	MutexProfile  string        // target path for -test.mutexprofile
+	MutexFraction int           // -test.mutexprofilefraction (default 1 if MutexProfile set)
+	BlockProfile  string        // target path for -test.blockprofile
+	BlockRate     int           // -test.blockprofilerate (default 1 if BlockProfile set)
 }
 
 // RawOutput contains stdout, stderr, and elapsed wall-clock duration of an execution.
@@ -51,6 +57,28 @@ func (r *Runner) Execute(ctx context.Context, bin TestBinary, spec ExecSpec) (Ra
 	}
 	if spec.CPU > 0 {
 		args = append(args, fmt.Sprintf("-test.cpu=%d", spec.CPU))
+	}
+	if spec.CPUProfile != "" {
+		args = append(args, "-test.cpuprofile="+spec.CPUProfile)
+	}
+	if spec.MemProfile != "" {
+		args = append(args, "-test.memprofile="+spec.MemProfile)
+	}
+	if spec.MutexProfile != "" {
+		args = append(args, "-test.mutexprofile="+spec.MutexProfile)
+		fraction := spec.MutexFraction
+		if fraction <= 0 {
+			fraction = 1
+		}
+		args = append(args, fmt.Sprintf("-test.mutexprofilefraction=%d", fraction))
+	}
+	if spec.BlockProfile != "" {
+		args = append(args, "-test.blockprofile="+spec.BlockProfile)
+		rate := spec.BlockRate
+		if rate <= 0 {
+			rate = 1
+		}
+		args = append(args, fmt.Sprintf("-test.blockprofilerate=%d", rate))
 	}
 
 	// #nosec G204 -- bin.Path is the compiled test binary.
