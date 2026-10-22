@@ -68,6 +68,20 @@ func RenderText(w io.Writer, cmp model.Comparison) error {
 				fmt.Fprintf(&sb, "    - %s (flat: %+.2f, cum: %+.2f)%s\n",
 					c.Function, c.FlatDelta, c.CumDelta, touchedMarker)
 			}
+			if len(d.Notes) > 0 {
+				sb.WriteString("    Warnings:\n")
+				for _, note := range d.Notes {
+					fmt.Fprintf(&sb, "      - %s\n", note)
+				}
+			}
+			sb.WriteString("    Note: contribution is not proof of causation. Inlining and compiler optimizations can move cost between functions.\n")
+			baseProf := fmt.Sprintf(".perfguard/profiles/%s/base.%s.pb.gz", d.Benchmark, d.ProfileType)
+			headProf := fmt.Sprintf(".perfguard/profiles/%s/head.%s.pb.gz", d.Benchmark, d.ProfileType)
+			if cmp.Head.ID != "" {
+				baseProf = fmt.Sprintf(".perfguard/runs/%s/profiles/%s/base.%s.pb.gz", cmp.Head.ID, d.Benchmark, d.ProfileType)
+				headProf = fmt.Sprintf(".perfguard/runs/%s/profiles/%s/head.%s.pb.gz", cmp.Head.ID, d.Benchmark, d.ProfileType)
+			}
+			fmt.Fprintf(&sb, "    Manual reproduction:\n      go tool pprof -diff_base %s %s\n", baseProf, headProf)
 		}
 	}
 

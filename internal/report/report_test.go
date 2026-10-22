@@ -452,3 +452,49 @@ func TestRenderGitHub_Truncation_MaxCommentLength(t *testing.T) {
 		}
 	}
 }
+
+func TestDiagnosis_ShortProfileWarningAndNotes(t *testing.T) {
+	t.Parallel()
+
+	cmp := makeBaseComparison("short-profile")
+	cmp.Verdict = model.VerdictFail
+	cmp.Diagnosis = []model.Diagnosis{
+		{
+			Benchmark:   "BenchmarkShort",
+			ProfileType: "cpu",
+			Candidates: []model.Candidate{
+				{Function: "main.slow", FlatDelta: 5.0, CumDelta: 10.0, Touched: true},
+			},
+			Notes: []string{
+				"warning: profile too short (80 samples, minimum 200)",
+			},
+		},
+	}
+
+	var mdBuf bytes.Buffer
+	if err := report.RenderMD(&mdBuf, cmp); err != nil {
+		t.Fatalf("RenderMD failed: %v", err)
+	}
+	mdStr := mdBuf.String()
+	if !strings.Contains(mdStr, "warning: profile too short (80 samples, minimum 200)") {
+		t.Errorf("expected short profile warning in markdown, got:\n%s", mdStr)
+	}
+	if !strings.Contains(mdStr, "go tool pprof -diff_base") {
+		t.Errorf("expected reproduction command in markdown, got:\n%s", mdStr)
+	}
+	if !strings.Contains(mdStr, "contribution is not proof of causation") {
+		t.Errorf("expected causation disclaimer in markdown, got:\n%s", mdStr)
+	}
+
+	var textBuf bytes.Buffer
+	if err := report.RenderText(&textBuf, cmp); err != nil {
+		t.Fatalf("RenderText failed: %v", err)
+	}
+	textStr := textBuf.String()
+	if !strings.Contains(textStr, "warning: profile too short (80 samples, minimum 200)") {
+		t.Errorf("expected short profile warning in text report, got:\n%s", textStr)
+	}
+	if !strings.Contains(textStr, "go tool pprof -diff_base") {
+		t.Errorf("expected reproduction command in text report, got:\n%s", textStr)
+	}
+}

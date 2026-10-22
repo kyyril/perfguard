@@ -90,6 +90,20 @@ func renderMarkdownSections(cmp model.Comparison) (header string, rows []string,
 				fmt.Fprintf(&dsb, "| %s | %+.2f | %+.2f | %s |\n",
 					c.Function, c.FlatDelta, c.CumDelta, changed)
 			}
+			if len(d.Notes) > 0 {
+				dsb.WriteString("\nWarnings:\n")
+				for _, note := range d.Notes {
+					fmt.Fprintf(&dsb, "- %s\n", note)
+				}
+			}
+			dsb.WriteString("\nNote: contribution is not proof of causation. Inlining and compiler optimizations can move cost between functions.\n\n")
+			baseProf := fmt.Sprintf(".perfguard/profiles/%s/base.%s.pb.gz", d.Benchmark, d.ProfileType)
+			headProf := fmt.Sprintf(".perfguard/profiles/%s/head.%s.pb.gz", d.Benchmark, d.ProfileType)
+			if cmp.Head.ID != "" {
+				baseProf = fmt.Sprintf(".perfguard/runs/%s/profiles/%s/base.%s.pb.gz", cmp.Head.ID, d.Benchmark, d.ProfileType)
+				headProf = fmt.Sprintf(".perfguard/runs/%s/profiles/%s/head.%s.pb.gz", cmp.Head.ID, d.Benchmark, d.ProfileType)
+			}
+			fmt.Fprintf(&dsb, "Manual reproduction:\n```\ngo tool pprof -diff_base %s %s\n```\n", baseProf, headProf)
 		}
 		diagnosis = dsb.String()
 	}

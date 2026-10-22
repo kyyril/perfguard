@@ -17,3 +17,10 @@ Head: 7777777 (feat/improve)
 |---|---|---|---|
 | example.com/pkg.GrowBuffer | +15.20 | +22.40 | yes |
 | runtime.mallocgc | +8.50 | +8.50 | no |
+
+Note: contribution is not proof of causation. Inlining and compiler optimizations can move cost between functions.
+
+Manual reproduction:
+```
+go tool pprof -diff_base .perfguard/runs/run-head-fail/profiles/BenchmarkEncode/base.cpu.pb.gz .perfguard/runs/run-head-fail/profiles/BenchmarkEncode/head.cpu.pb.gz
+```

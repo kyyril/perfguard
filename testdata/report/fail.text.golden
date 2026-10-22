@@ -10,3 +10,6 @@ Diagnosis (contributor candidates):
   BenchmarkEncode (cpu):
     - example.com/pkg.GrowBuffer (flat: +15.20, cum: +22.40) [modified in PR]
     - runtime.mallocgc (flat: +8.50, cum: +8.50)
+    Note: contribution is not proof of causation. Inlining and compiler optimizations can move cost between functions.
+    Manual reproduction:
+      go tool pprof -diff_base .perfguard/runs/run-head-fail/profiles/BenchmarkEncode/base.cpu.pb.gz .perfguard/runs/run-head-fail/profiles/BenchmarkEncode/head.cpu.pb.gz
