@@ -1,65 +1,74 @@
+version: "2"
 run:
-  timeout: 5m
   tests: true
-
 linters:
   enable:
     - depguard
-    - errcheck
     - gocritic
-    - gofmt
-    - goimports
     - gosec
-    - gosimple
-    - govet
-    - ineffassign
     - misspell
     - revive
-    - staticcheck
-    - unused
-
-linters-settings:
-  depguard:
-    rules:
-      model:
-        files:
-          - "**/internal/model/**"
-        deny:
-          - pkg: "github.com/kyyril/perfguard/internal/**"
-            desc: "internal/model must not import other internal packages"
-      stats:
-        files:
-          - "**/internal/stats/**"
-        deny:
-          - pkg: "os"
-            desc: "internal/stats is pure and must not perform I/O"
-          - pkg: "os/exec"
-            desc: "internal/stats is pure and must not run processes"
-          - pkg: "net/**"
-            desc: "internal/stats is pure and must not use network"
-          - pkg: "github.com/kyyril/perfguard/internal/runner"
-            desc: "internal/stats must not depend on runner"
-          - pkg: "github.com/kyyril/perfguard/internal/gitx"
-            desc: "internal/stats must not depend on gitx"
-          - pkg: "github.com/kyyril/perfguard/internal/ghci"
-            desc: "internal/stats must not depend on ghci"
-      decision:
-        files:
-          - "**/internal/decision/**"
-        deny:
-          - pkg: "os"
-            desc: "internal/decision is pure and must not perform I/O"
-          - pkg: "os/exec"
-            desc: "internal/decision is pure and must not run processes"
-          - pkg: "net/**"
-            desc: "internal/decision is pure and must not use network"
-          - pkg: "github.com/kyyril/perfguard/internal/runner"
-            desc: "internal/decision must not depend on runner"
-          - pkg: "github.com/kyyril/perfguard/internal/gitx"
-            desc: "internal/decision must not depend on gitx"
-          - pkg: "github.com/kyyril/perfguard/internal/ghci"
-            desc: "internal/decision must not depend on ghci"
-
-issues:
-  exclude-dirs:
-    - testdata
+  settings:
+    depguard:
+      rules:
+        decision:
+          files:
+            - '**/internal/decision/**'
+          deny:
+            - pkg: os
+              desc: internal/decision is pure and must not perform I/O
+            - pkg: os/exec
+              desc: internal/decision is pure and must not run processes
+            - pkg: net/**
+              desc: internal/decision is pure and must not use network
+            - pkg: github.com/kyyril/perfguard/internal/runner
+              desc: internal/decision must not depend on runner
+            - pkg: github.com/kyyril/perfguard/internal/gitx
+              desc: internal/decision must not depend on gitx
+            - pkg: github.com/kyyril/perfguard/internal/ghci
+              desc: internal/decision must not depend on ghci
+        model:
+          files:
+            - '**/internal/model/**'
+          deny:
+            - pkg: github.com/kyyril/perfguard/internal/**
+              desc: internal/model must not import other internal packages
+        stats:
+          files:
+            - '**/internal/stats/**'
+          deny:
+            - pkg: os
+              desc: internal/stats is pure and must not perform I/O
+            - pkg: os/exec
+              desc: internal/stats is pure and must not run processes
+            - pkg: net/**
+              desc: internal/stats is pure and must not use network
+            - pkg: github.com/kyyril/perfguard/internal/runner
+              desc: internal/stats must not depend on runner
+            - pkg: github.com/kyyril/perfguard/internal/gitx
+              desc: internal/stats must not depend on gitx
+            - pkg: github.com/kyyril/perfguard/internal/ghci
+              desc: internal/stats must not depend on ghci
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - testdata
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - testdata
+      - third_party$
+      - builtin$
+      - examples$

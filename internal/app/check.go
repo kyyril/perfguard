@@ -13,6 +13,7 @@ import (
 	"github.com/kyyril/perfguard/internal/config"
 	"github.com/kyyril/perfguard/internal/decision"
 	"github.com/kyyril/perfguard/internal/envinfo"
+	"github.com/kyyril/perfguard/internal/ghci"
 	"github.com/kyyril/perfguard/internal/gitx"
 	"github.com/kyyril/perfguard/internal/model"
 	"github.com/kyyril/perfguard/internal/report"
@@ -29,6 +30,7 @@ type CheckOptions struct {
 	Git           VCS
 	Mode          string
 	BaselineStore baseline.Store
+	Publisher     ghci.Publisher
 }
 
 // CheckResult contains all artifacts and outputs of a check run.
@@ -293,6 +295,27 @@ func Check(ctx context.Context, opts CheckOptions) (CheckResult, error) {
 	reportFile := filepath.Join(outDir, "report.txt")
 	if err := os.WriteFile(reportFile, []byte(reportText), 0o600); err != nil {
 		return CheckResult{}, fmt.Errorf("app: save report text: %w", err)
+	}
+
+	// 10. Save markdown report: report.md
+	mdFile := filepath.Join(outDir, "report.md")
+	var mdBuf bytes.Buffer
+	if err := report.RenderMD(&mdBuf, cmp); err == nil {
+		_ = os.WriteFile(mdFile, mdBuf.Bytes(), 0o600)
+	}
+
+	// 11. Publish to GitHub if configured or in GitHub Actions
+	if cfg.GitHub.Comment || cfg.GitHub.StepSummary || os.Getenv("GITHUB_ACTIONS") == "true" {
+		pub := opts.Publisher
+		if pub == nil {
+			pub = ghci.NewClient(os.Getenv("GITHUB_TOKEN"))
+		}
+		_ = ghci.PublishCheckResult(ctx, pub, cmp, ghci.PublishOptions{
+			EventPath:       os.Getenv("GITHUB_EVENT_PATH"),
+			StepSummaryPath: os.Getenv(ghci.EnvStepSummary),
+			Comment:         cfg.GitHub.Comment,
+			StepSummary:     cfg.GitHub.StepSummary || os.Getenv(ghci.EnvStepSummary) != "",
+		})
 	}
 
 	return CheckResult{

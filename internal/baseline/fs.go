@@ -172,7 +172,7 @@ func (s *FSStore) List(ctx context.Context, filter Filter) ([]Info, error) {
 		}
 
 		// Parse metadata from file
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // path comes from WalkDir and is within the baseline dir validated at store creation
 		if err != nil {
 			return nil
 		}

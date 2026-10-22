@@ -1,0 +1,89 @@
+name: "PerfGuard Performance Check"
+description: "Detect performance regressions in Go benchmarks against base branch"
+author: "kyyril"
+inputs:
+  version:
+    description: "PerfGuard version to install (e.g. v0.1.0 or latest)"
+    required: false
+    default: "latest"
+  base:
+    description: "Base git reference to compare against (defaults to target branch of PR)"
+    required: false
+    default: ""
+  config:
+    description: "Path to perfguard.yaml configuration file"
+    required: false
+    default: ""
+  fail-on:
+    description: "Failure threshold: 'fail' or 'warn'"
+    required: false
+    default: "fail"
+  strict:
+    description: "Exit with code 4 on inconclusive verdict"
+    required: false
+    default: "false"
+  mode:
+    description: "Execution mode: 'same-runner' or 'stored'"
+    required: false
+    default: ""
+  token:
+    description: "GitHub token with pull-requests: write permissions"
+    required: false
+    default: ${{ github.token }}
+  upload-artifacts:
+    description: "Whether to upload .perfguard/ directory as workflow artifact"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: "go.mod"
+        cache: false
+
+    - name: Install PerfGuard
+      shell: bash
+      run: |
+        if command -v perfguard >/dev/null 2>&1; then
+          echo "perfguard is already installed: $(which perfguard)"
+        else
+          echo "Installing perfguard..."
+          go install github.com/kyyril/perfguard/cmd/perfguard@${{ inputs.version }}
+        fi
+
+    - name: Run PerfGuard check
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_EVENT_PATH: ${{ github.event_path }}
+        GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
+      run: |
+        ARGS=""
+        if [ -n "${{ inputs.base }}" ]; then
+          ARGS="$ARGS --base ${{ inputs.base }}"
+        fi
+        if [ -n "${{ inputs.config }}" ] && [ -f "${{ inputs.config }}" ]; then
+          ARGS="$ARGS --config ${{ inputs.config }}"
+        fi
+        if [ -n "${{ inputs.mode }}" ]; then
+          ARGS="$ARGS --mode ${{ inputs.mode }}"
+        fi
+        if [ -n "${{ inputs.fail-on }}" ]; then
+          ARGS="$ARGS --fail-on ${{ inputs.fail-on }}"
+        fi
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          ARGS="$ARGS --strict"
+        fi
+
+        perfguard check $ARGS
+
+    - name: Upload PerfGuard artifacts
+      if: always() && inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: perfguard-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+        path: .perfguard/
+        if-no-files-found: ignore

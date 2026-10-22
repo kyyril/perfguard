@@ -29,7 +29,7 @@ func WriteStepSummaryFile(path string, cmp model.Comparison) error {
 		return errors.New("ghci: step summary path is required")
 	}
 
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // path comes from GITHUB_STEP_SUMMARY env var set by GitHub Actions runner
 	if err != nil {
 		return fmt.Errorf("ghci: open step summary file: %w", err)
 	}

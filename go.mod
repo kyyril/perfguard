@@ -2,9 +2,10 @@ module github.com/kyyril/perfguard
 
 go 1.24.0
 
-toolchain go1.24.6
+toolchain go1.26.10
 
 require (
+	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
 	github.com/google/go-cmp v0.7.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.10.2
@@ -13,7 +14,6 @@ require (
 )
 
 require (
-	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 )

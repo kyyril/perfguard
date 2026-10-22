@@ -10,9 +10,11 @@ import (
 
 	"github.com/kyyril/perfguard/internal/app"
 	"github.com/kyyril/perfguard/internal/config"
+	"github.com/kyyril/perfguard/internal/ghci"
 	"github.com/kyyril/perfguard/internal/gitx"
 	"github.com/kyyril/perfguard/internal/model"
 	"github.com/kyyril/perfguard/internal/runner"
+	"gopkg.in/yaml.v3"
 )
 
 type adaptiveFakeRunner struct {
@@ -610,4 +612,148 @@ func TestCheck_FailuresAndCleanup(t *testing.T) {
 			t.Errorf("expected head binary %s to be cleaned up", headBin.Path)
 		}
 	})
+}
+
+type fakeCheckPublisher struct {
+	calls []ghci.CommentParams
+}
+
+func (f *fakeCheckPublisher) PublishComment(_ context.Context, params ghci.CommentParams) (*ghci.CommentResult, error) {
+	f.calls = append(f.calls, params)
+	return &ghci.CommentResult{ID: 1, Action: "created"}, nil
+}
+
+func TestCheck_ReportMDAndPublishing(t *testing.T) {
+	tmpDir := t.TempDir()
+	outDir := filepath.Join(tmpDir, "runs")
+	eventFile := filepath.Join(tmpDir, "event.json")
+	summaryFile := filepath.Join(tmpDir, "summary.md")
+
+	eventPayload := `{
+		"pull_request": {
+			"number": 12,
+			"head": {
+				"repo": {
+					"fork": false,
+					"full_name": "kyyril/perfguard"
+				}
+			},
+			"base": {
+				"repo": {
+					"fork": false,
+					"full_name": "kyyril/perfguard",
+					"owner": {"login": "kyyril"},
+					"name": "perfguard"
+				}
+			}
+		}
+	}`
+	if err := os.WriteFile(eventFile, []byte(eventPayload), 0o600); err != nil {
+		t.Fatalf("failed writing event file: %v", err)
+	}
+
+	t.Setenv("GITHUB_EVENT_PATH", eventFile)
+	t.Setenv(ghci.EnvStepSummary, summaryFile)
+
+	wt := &fakeCheckWorktree{path: filepath.Join(tmpDir, "wt")}
+	vcs := &fakeCheckVCS{
+		commit:   gitx.Commit{SHA: "1111111222222233333334444444555555566666"},
+		worktree: wt,
+	}
+
+	binDir := t.TempDir()
+	baseBin := createDummyBinary(t, binDir, "base.test")
+	headBin := createDummyBinary(t, binDir, "head.test")
+	r := &fakeCheckRunner{
+		baseBins: []runner.TestBinary{baseBin},
+		headBins: []runner.TestBinary{headBin},
+	}
+
+	pub := &fakeCheckPublisher{}
+	cfg := config.Default()
+	cfg.Benchmarks.Count = 6
+	cfg.Thresholds.MinSamples = 6
+	cfg.GitHub.Comment = true
+	cfg.GitHub.StepSummary = true
+
+	res, err := app.Check(context.Background(), app.CheckOptions{
+		Config:    cfg,
+		WorkDir:   tmpDir,
+		OutputDir: outDir,
+		Git:       vcs,
+		Runner:    r,
+		Publisher: pub,
+	})
+	if err != nil {
+		t.Fatalf("unexpected Check error: %v", err)
+	}
+
+	// 1. Verify report.md exists in RunDir and contains markdown header
+	mdPath := filepath.Join(res.RunDir, "report.md")
+	mdContent, err := os.ReadFile(mdPath)
+	if err != nil {
+		t.Fatalf("failed reading report.md: %v", err)
+	}
+	if !strings.Contains(string(mdContent), "## PerfGuard:") {
+		t.Errorf("report.md does not contain expected header: %s", string(mdContent))
+	}
+
+	// 2. Verify Publisher was called
+	if len(pub.calls) != 1 {
+		t.Errorf("expected 1 publisher call, got %d", len(pub.calls))
+	} else if pub.calls[0].PRNumber != 12 {
+		t.Errorf("expected PRNumber 12, got %d", pub.calls[0].PRNumber)
+	}
+
+	// 3. Verify step summary was written
+	summaryContent, err := os.ReadFile(summaryFile)
+	if err != nil {
+		t.Fatalf("failed reading summary file: %v", err)
+	}
+	if !strings.Contains(string(summaryContent), "## PerfGuard:") {
+		t.Errorf("summary file does not contain expected header: %s", string(summaryContent))
+	}
+}
+
+func TestCompositeActionYML(t *testing.T) {
+	t.Parallel()
+
+	// Locate action.yml at repository root
+	actionPath := filepath.Join("..", "..", "action.yml")
+	data, err := os.ReadFile(actionPath)
+	if err != nil {
+		t.Fatalf("failed reading action.yml: %v", err)
+	}
+
+	var action struct {
+		Name        string                 `yaml:"name"`
+		Description string                 `yaml:"description"`
+		Inputs      map[string]interface{} `yaml:"inputs"`
+		Runs        struct {
+			Using string        `yaml:"using"`
+			Steps []interface{} `yaml:"steps"`
+		} `yaml:"runs"`
+	}
+
+	if err := yaml.Unmarshal(data, &action); err != nil {
+		t.Fatalf("failed parsing action.yml: %v", err)
+	}
+
+	if action.Name == "" {
+		t.Errorf("action.yml name should not be empty")
+	}
+	if action.Runs.Using != "composite" {
+		t.Errorf("expected runs.using to be 'composite', got %q", action.Runs.Using)
+	}
+
+	expectedInputs := []string{"version", "base", "config", "fail-on", "strict", "mode", "token", "upload-artifacts"}
+	for _, in := range expectedInputs {
+		if _, ok := action.Inputs[in]; !ok {
+			t.Errorf("expected input %q in action.yml", in)
+		}
+	}
+
+	if len(action.Runs.Steps) == 0 {
+		t.Errorf("expected at least one step in composite action")
+	}
 }

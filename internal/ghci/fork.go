@@ -120,7 +120,7 @@ func ParseEventFile(path string) (*EventInfo, error) {
 		return &EventInfo{}, nil
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path comes from GITHUB_EVENT_PATH env var set by GitHub Actions runner
 	if err != nil {
 		return nil, fmt.Errorf("ghci: read event file: %w", err)
 	}
