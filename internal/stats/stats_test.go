@@ -487,3 +487,22 @@ func TestEdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkMannWhitneyU(b *testing.B) {
+	s1 := []float64{100.0, 102.0, 99.0, 101.0, 100.5, 98.5, 101.5, 100.0, 99.5, 101.0}
+	s2 := []float64{110.0, 112.5, 109.0, 111.0, 110.5, 108.5, 111.5, 110.0, 109.5, 112.0}
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = stats.MannWhitneyU(s1, s2)
+	}
+}
+
+func BenchmarkMedian(b *testing.B) {
+	s := []float64{100.0, 102.0, 99.0, 101.0, 100.5, 98.5, 101.5, 100.0, 99.5, 101.0}
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _ = stats.Median(s)
+	}
+}

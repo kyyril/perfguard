@@ -338,3 +338,16 @@ func TestModelSampleStructure(t *testing.T) {
 		t.Errorf("results mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func BenchmarkParse(b *testing.B) {
+	data, err := os.ReadFile("../../testdata/benchparse/standard.txt")
+	if err != nil {
+		b.Fatalf("failed to read fixture: %v", err)
+	}
+	content := string(data)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _ = benchparse.Parse(strings.NewReader(content), "example/pkg")
+	}
+}

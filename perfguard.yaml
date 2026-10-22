@@ -1,0 +1,27 @@
+version: 1
+
+benchmarks:
+  packages:
+    - "./internal/benchparse"
+    - "./internal/stats"
+  include: "."
+  count: 5
+  benchtime: "100ms"
+
+thresholds:
+  metrics:
+    sec/op:
+      warn: 10
+      fail: 25
+    B/op:
+      warn: 15
+      fail: 30
+    allocs/op:
+      warn: 10
+      fail: 25
+
+profiling:
+  mode: on-regression
+  types:
+    - cpu
+    - allocs

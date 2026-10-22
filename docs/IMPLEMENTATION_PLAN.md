@@ -113,7 +113,7 @@ Update this table whenever a status changes.
 | P6-T3 | `[x]` | Step summary | P6-T1 | Write to `$GITHUB_STEP_SUMMARY` | Test with temp file | `make check` passes, WriteStepSummary and WriteStepSummaryFile verified with temp files and env testing |
 | P6-T4 | `[x]` | `action.yml` composite and artifact upload | P6-T2, P6-T3, P4-T3 | `action.yml` | Workflow on example repo runs green on a test PR | `make check` and `make test-integration` pass, TestCompositeActionYML validates composite action inputs/steps, TestCheck_ReportMDAndPublishing verifies report.md and GH step summary/comment publishing |
 | P6-T5 | `[x]` | Fork PR fallback | P6-T2 | Fork detection from payload | Test: fork payload does not call write API and job does not fail (AC-07) | `make check` and `make test-integration` pass, 84.7% coverage in `internal/ghci`, TestPublishCheckResult_ForkPR_SkipsComment verifies AC-07 fork fallback |
-| P6-T6 | `[ ]` | Dogfooding workflow and example workflow in docs | P6-T4 | `.github/workflows/perfguard-self.yml` | Workflow runs on a PR in this repository | |
+| P6-T6 | `[x]` | Dogfooding workflow and example workflow in docs | P6-T4 | `.github/workflows/perfguard-self.yml` | Workflow runs on a PR in this repository | `make check`, `make test-integration`, and `make test-e2e` pass, internal benchmarks in benchparse and stats, perfguard.yaml configured, TestDogfoodingWorkflowYML passes |
 
 ## P7 Diagnosis (v0.3)
 

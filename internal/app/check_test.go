@@ -757,3 +757,38 @@ func TestCompositeActionYML(t *testing.T) {
 		t.Errorf("expected at least one step in composite action")
 	}
 }
+
+func TestDogfoodingWorkflowYML(t *testing.T) {
+	t.Parallel()
+
+	workflowPath := filepath.Join("..", "..", ".github", "workflows", "perfguard-self.yml")
+	data, err := os.ReadFile(workflowPath)
+	if err != nil {
+		t.Fatalf("failed reading perfguard-self.yml: %v", err)
+	}
+
+	var wf struct {
+		Name string `yaml:"name"`
+		On   struct {
+			PullRequest struct {
+				Branches []string `yaml:"branches"`
+			} `yaml:"pull_request"`
+		} `yaml:"on"`
+		Permissions map[string]string      `yaml:"permissions"`
+		Jobs        map[string]interface{} `yaml:"jobs"`
+	}
+
+	if err := yaml.Unmarshal(data, &wf); err != nil {
+		t.Fatalf("failed parsing perfguard-self.yml: %v", err)
+	}
+
+	if wf.Name == "" {
+		t.Errorf("expected workflow name to not be empty")
+	}
+	if wf.Permissions["pull-requests"] != "write" {
+		t.Errorf("expected pull-requests: write permission, got %v", wf.Permissions["pull-requests"])
+	}
+	if len(wf.Jobs) == 0 {
+		t.Errorf("expected at least one job in workflow")
+	}
+}
