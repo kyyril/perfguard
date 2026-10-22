@@ -112,7 +112,7 @@ Update this table whenever a status changes.
 | P6-T2 | `[x]` | `ghci`: upsert PR comment with marker | P6-T1 | `internal/ghci` | Test with `httptest`: publishing twice results in one comment | `make check` passes, 82.7% coverage in `internal/ghci`, TestPublishComment_PublishTwiceResultsInOneComment verifies upsert behavior with httptest |
 | P6-T3 | `[x]` | Step summary | P6-T1 | Write to `$GITHUB_STEP_SUMMARY` | Test with temp file | `make check` passes, WriteStepSummary and WriteStepSummaryFile verified with temp files and env testing |
 | P6-T4 | `[ ]` | `action.yml` composite and artifact upload | P6-T2, P6-T3, P4-T3 | `action.yml` | Workflow on example repo runs green on a test PR | |
-| P6-T5 | `[ ]` | Fork PR fallback | P6-T2 | Fork detection from payload | Test: fork payload does not call write API and job does not fail (AC-07) | |
+| P6-T5 | `[x]` | Fork PR fallback | P6-T2 | Fork detection from payload | Test: fork payload does not call write API and job does not fail (AC-07) | `make check` and `make test-integration` pass, 84.7% coverage in `internal/ghci`, TestPublishCheckResult_ForkPR_SkipsComment verifies AC-07 fork fallback |
 | P6-T6 | `[ ]` | Dogfooding workflow and example workflow in docs | P6-T4 | `.github/workflows/perfguard-self.yml` | Workflow runs on a PR in this repository | |
 
 ## P7 Diagnosis (v0.3)
