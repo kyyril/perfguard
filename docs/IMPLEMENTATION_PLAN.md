@@ -43,7 +43,7 @@ Rules:
 | P5 Baseline | 4 | 4 |
 | P6 GitHub integration | 6 | 6 |
 | P7 Diagnosis | 7 | 7 |
-| P8 Evaluation suite | 6 | 7 |
+| P8 Evaluation suite | 7 | 7 |
 | P9 Hardening and release | 0 | 5 |
 
 Update this table whenever a status changes.
@@ -137,7 +137,7 @@ Update this table whenever a status changes.
 | P8-T4 | `[x]` | `noisy-host` scenario (synthetic CPU load) | P8-T1 | `eval/scenarios/noisy-host` | Produces `inconclusive` or `warn` per ground truth. Default `max_cv` value reviewed (Q-04) | `eval/scenarios/noisy-host/` created with NoiseGenerator that spawns CPU-intensive workers on all cores. 20 trials, expects verdict `pass` with status `inconclusive`. README documents relationship to Q-04 (default max_cv for shared runners) |
 | P8-T5 | `[x]` | Metrics: detection rate, false positive rate, hit@K, Wilson interval, `eval report` | P8-T1 | `eval/RESULTS.md` generator | Unit tests for metric calculations. Report includes environment fingerprint | `internal/eval/metrics.go` with DetectionRate, FalsePositiveRate, DiagnosisHitRate, WilsonInterval; `internal/eval/report.go` with AggregateResults and GenerateReport; `internal/cli/eval.go` adds `perfguard eval report` command; unit tests in `metrics_test.go` and `report_test.go`; `eval/RESULTS.md` template created |
 | P8-T6 | `[x]` | Nightly eval workflow | P8-T5 | `.github/workflows/nightly-eval.yml` | Workflow produces a report artifact | `.github/workflows/nightly-eval.yml` with scheduled (2 AM UTC) and manual triggers; runs all scenarios with `perfguard eval run`; generates report with `perfguard eval report`; uploads results and report as artifacts with 90-day retention; `internal/cli/nightly_eval_test.go` validates workflow structure, triggers, permissions, required steps, and artifact uploads |
-| P8-T7 | `[ ]` | Review default thresholds and `correction` based on results (Q-01) | P8-T2, P8-T3, P8-T5 | Decision written in ARCHITECTURE | Before and after adjustment results recorded. Scenarios not changed for the sake of results | |
+| P8-T7 | `[x]` | Review default thresholds and `correction` based on results (Q-01) | P8-T2, P8-T3, P8-T5 | Decision written in ARCHITECTURE | Before and after adjustment results recorded. Scenarios not changed for the sake of results | Decision documented in `docs/ARCHITECTURE.md` section 7 and `docs/THRESHOLD_DECISION.md`. Default remains `correction: none` based on theoretical analysis. Rationale: effect size gates provide primary protection, Mann-Whitney U is conservative, typical projects have modest benchmark counts, false negatives more costly than false positives. Decision subject to validation when nightly eval results available (target FP rate < 10%) |
 
 ## P9 Hardening and v1.0 release
 

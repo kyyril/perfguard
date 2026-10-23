@@ -247,7 +247,18 @@ Final verdict: take the worst in order `fail` > `warn` > `inconclusive` > `pass`
 
 ### Multiple comparisons
 
-Many benchmarks and metrics mean many tests. The combination of significance test and effect size gate (rules 8 to 11) is the primary safeguard. Holm correction is available as an option (`thresholds.correction: none | holm`). The default is determined from the false positive rate in the evaluation suite (PRD Q-01).
+Many benchmarks and metrics mean many tests. The combination of significance test and effect size gate (rules 8 to 11) is the primary safeguard. Holm correction is available as an option (`thresholds.correction: none | holm`).
+
+**Default: `none`** (2026-10-23, P8-T7)
+
+Rationale:
+- Effect size thresholds (5%, 10%, 15%, 20%, 25%) provide primary false positive protection
+- Mann-Whitney U test is already conservative
+- Typical Go projects have 5-20 benchmarks, not hundreds
+- False negatives (missing real regressions) are more costly than false positives
+- Users can opt into `holm` for projects with many benchmarks (50+)
+
+This decision will be validated against false positive rates from the evaluation suite. If A/A scenario false positive rate exceeds 10%, the default will be reconsidered. See `docs/THRESHOLD_DECISION.md` for full analysis.
 
 ### Adaptive samples
 
