@@ -63,6 +63,10 @@ func TestMatchesChangedFile(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Skip Windows-specific path test on non-Windows platforms
+			if tc.name == "suffix match with windows path" && filepath.Separator != '\\' {
+				t.Skip("Windows path test skipped on non-Windows platform")
+			}
 			got := profile.MatchesChangedFile(tc.sourceFile, tc.changed)
 			if got != tc.want {
 				t.Errorf("MatchesChangedFile(%q, %v) = %v; want %v", tc.sourceFile, tc.changed, got, tc.want)
