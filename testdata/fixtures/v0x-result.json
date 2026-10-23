@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "run-v0x-fixture",
+  "side": "base",
+  "created_at": "2026-10-20T10:00:00Z",
+  "git": {
+    "sha": "abc123def456",
+    "ref": "refs/heads/main",
+    "dirty": false
+  },
+  "env": {
+    "os": "linux",
+    "arch": "amd64",
+    "go_version": "go1.24.0",
+    "num_cpu": 8,
+    "cpu_model": "Intel(R) Core(TM) i7-8550U",
+    "gomaxprocs": 8,
+    "hostname": "test-machine",
+    "kernel_version": "5.15.0"
+  },
+  "params": {
+    "count": 10,
+    "benchtime": "1s",
+    "cpu": 0,
+    "include": ".",
+    "exclude": [],
+    "mode": "same-runner",
+    "warmup_runs": 1,
+    "max_extra_runs": 10,
+    "extra_round_step": 2
+  },
+  "benchmarks": [
+    {
+      "package": "github.com/example/pkg",
+      "name": "BenchmarkEncode",
+      "procs": 1,
+      "samples": [
+        {
+          "iterations": 1000000,
+          "values": {
+            "sec/op": 0.0001234,
+            "B/op": 512,
+            "allocs/op": 5
+          }
+        },
+        {
+          "iterations": 1000000,
+          "values": {
+            "sec/op": 0.0001256,
+            "B/op": 512,
+            "allocs/op": 5
+          }
+        },
+        {
+          "iterations": 1000000,
+          "values": {
+            "sec/op": 0.0001245,
+            "B/op": 512,
+            "allocs/op": 5
+          }
+        }
+      ]
+    }
+  ]
+}

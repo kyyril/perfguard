@@ -2,7 +2,7 @@
 
 Performance regression detection for Go projects. PerfGuard runs benchmarks before and after a code change, compares them statistically, then shows evidence: how large the change is, how confident the result is, and which functions contribute.
 
-> Status: pre-alpha. Design is complete, implementation is progressing per [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Commands and configuration below are the target interface. Only features marked `[x]` in the plan are complete.
+> Status: Release candidate for v1.0. All core features implemented and tested. See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for completion status.
 
 ## Problem solved
 

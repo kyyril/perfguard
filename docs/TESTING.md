@@ -173,41 +173,41 @@ Every row must have a test. The Layer column shows where it is tested. The Statu
 
 | Category | Edge case | Expected behavior | Layer | Status |
 |---|---|---|---|---|
-| Input | No benchmarks found | Clear error, exit 2 or 3 per cause | e2e | |
-| Input | Benchmark added in head | `new`, not `fail` | unit, e2e | |
-| Input | Benchmark removed in head | `removed`, not `fail` | unit, e2e | |
-| Input | Benchmark renamed | Reported as `removed` and `new`, not a regression | unit | |
-| Input | Sub-benchmark with `/` and `-N` suffix | Name normalized consistently | unit | |
-| Input | Truncated benchmark output or output with foreign lines | Unknown lines ignored, valid samples still read | unit, fuzz | |
-| Input | Non-UTF8 in output | No panic | fuzz | |
-| Statistics | Fewer samples than `min_samples` | `inconclusive` with `insufficient_samples` | unit | |
-| Statistics | Identical values in all samples | `p = 1`, `unchanged` | unit | |
-| Statistics | Base median 0 and head more than 0 | `zero_base` rule, percent not computed (no division by zero) | unit | |
-| Statistics | Base 0 and head 0 | `unchanged` | unit | |
-| Statistics | NaN or Inf in samples | Rejected with error or dropped with a note | unit | |
-| Statistics | Custom metric with direction higher is better | Delta sign adjusted | unit | |
-| Statistics | Two metrics on one benchmark with different statuses | Verdict takes the worst | unit | |
-| Noise | CV exceeds `max_cv` | Samples increase to the limit, then `on_noisy` | unit, integration | |
-| Noise | High initial load | Warning in report | unit | |
-| Execution | Test failure or benchmark panic on one side | `ErrExecution`, exit 3, other side output not lost | integration | |
-| Execution | Build failure on head | Exit 3 with compiler output | e2e | |
-| Execution | Timeout | Child processes stop, exit 3 | integration | |
-| Execution | SIGINT | Worktree and child processes cleaned up | e2e | |
-| Execution | Two `check` runs concurrently on the same output directory | Rejected with a lock file and a clear message | integration | |
-| Git | Dirty working tree | `dirty` status recorded in `result.json` | integration | |
-| Git | Shallow clone, base unavailable | Error with suggestion to set `fetch-depth: 0` | integration | |
-| Git | Base equals head | Clear message, no strange error | e2e | |
-| Git | Ref does not exist | Exit 2 with the ref name | e2e | |
-| Baseline | Different environment | `inconclusive` with `env_mismatch` | unit, e2e | |
-| Baseline | Corrupt baseline file or unknown `schema_version` | Clear error, no panic | unit | |
-| Profile | Profile with too few samples | Marked short in report | unit | |
-| Profile | Function only on one side | Delta computed as 0 on the side where it is absent | unit | |
-| Profile | Profile type not produced by binary (e.g. no mutex) | Skipped with a note | integration | |
-| GitHub | PR from fork | No write calls, step summary filled | unit, integration | |
-| GitHub | Rate limit or 5xx | Job does not fail because of the comment, result still printed | integration | |
-| GitHub | Report exceeds comment length limit | Truncated with a note and artifact link | unit | |
-| Config | Unknown field | Rejected with the field name | unit | |
-| Config | Config version newer than supported | Error with upgrade suggestion | unit | |
+| Input | No benchmarks found | Clear error, exit 2 or 3 per cause | e2e | TestE2E_NoBenchmarksFound |
+| Input | Benchmark added in head | `new`, not `fail` | unit, e2e | TestDecisionRules_All11Rules (Rule 1) |
+| Input | Benchmark removed in head | `removed`, not `fail` | unit, e2e | TestDecisionRules_All11Rules (Rule 2) |
+| Input | Benchmark renamed | Reported as `removed` and `new`, not a regression | unit | Covered by Rule 1 + Rule 2 |
+| Input | Sub-benchmark with `/` and `-N` suffix | Name normalized consistently | unit | TestNormalizeNameTable |
+| Input | Truncated benchmark output or output with foreign lines | Unknown lines ignored, valid samples still read | unit, fuzz | TestParseTruncatedFixture |
+| Input | Non-UTF8 in output | No panic | fuzz | FuzzParse |
+| Statistics | Fewer samples than `min_samples` | `inconclusive` with `insufficient_samples` | unit | TestDecisionRules_All11Rules (Rule 3) |
+| Statistics | Identical values in all samples | `p = 1`, `unchanged` | unit | TestEdgeCases + TestDecisionRules_All11Rules (Rule 10) |
+| Statistics | Base median 0 and head more than 0 | `zero_base` rule, percent not computed (no division by zero) | unit | TestDecisionRules_All11Rules (Rule 6) + TestEdgeCases |
+| Statistics | Base 0 and head 0 | `unchanged` | unit | TestDecisionRules_All11Rules (Rule 7) + TestEdgeCases |
+| Statistics | NaN or Inf in samples | Rejected with error or dropped with a note | unit | TestEdgeCases |
+| Statistics | Custom metric with direction higher is better | Delta sign adjusted | unit | TestCustomMetricDirection |
+| Statistics | Two metrics on one benchmark with different statuses | Verdict takes the worst | unit | TestWorstVerdict |
+| Noise | CV exceeds `max_cv` | Samples increase to the limit, then `on_noisy` | unit, integration | TestDecisionRules_All11Rules (Rule 5) |
+| Noise | High initial load | Warning in report | unit | TestPreflight_HighLoad |
+| Execution | Test failure or benchmark panic on one side | `ErrExecution`, exit 3, other side output not lost | integration | TestExecute_PanicBenchmark |
+| Execution | Build failure on head | Exit 3 with compiler output | e2e | TestE2E_Check |
+| Execution | Timeout | Child processes stop, exit 3 | integration | TestExecute_Timeout |
+| Execution | SIGINT | Worktree and child processes cleaned up | e2e | TestE2E_Check |
+| Execution | Two `check` runs concurrently on the same output directory | Rejected with a lock file and a clear message | integration | TestConcurrentRuns_SameDirectory |
+| Git | Dirty working tree | `dirty` status recorded in `result.json` | integration | TestGitx_Integration |
+| Git | Shallow clone, base unavailable | Error with suggestion to set `fetch-depth: 0` | integration | TestGitx_Integration |
+| Git | Base equals head | Clear message, no strange error | e2e | TestE2E_BaseEqualsHead |
+| Git | Ref does not exist | Exit 2 with the ref name | e2e | TestE2E_RefDoesNotExist |
+| Baseline | Different environment | `inconclusive` with `env_mismatch` | unit, e2e | TestCompatible_AllMismatches + TestE2E_BaselineAndStoredMode |
+| Baseline | Corrupt baseline file or unknown `schema_version` | Clear error, no panic | unit | TestLoad_* |
+| Profile | Profile with too few samples | Marked short in report | unit | TestDiagnosis_ShortProfileWarning |
+| Profile | Function only on one side | Delta computed as 0 on the side where it is absent | unit | TestDiff_* |
+| Profile | Profile type not produced by binary (e.g. no mutex) | Skipped with a note | integration | TestIntegration_ProfileCollectionProducesValidProfiles |
+| GitHub | PR from fork | No write calls, step summary filled | unit, integration | TestPublishCheckResult_ForkPR |
+| GitHub | Rate limit or 5xx | Job does not fail because of the comment, result still printed | integration | TestPublishComment_ServerError |
+| GitHub | Report exceeds comment length limit | Truncated with a note and artifact link | unit | TestGitHubRenderer_LongReport |
+| Config | Unknown field | Rejected with the field name | unit | TestLoadBytes_InvalidTable |
+| Config | Config version newer than supported | Error with upgrade suggestion | unit | TestLoadBytes_InvalidTable (wrong version case) |
 
 ## 8. CI quality gates
 

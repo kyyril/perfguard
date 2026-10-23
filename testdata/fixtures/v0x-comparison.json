@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "base": {
+    "id": "run-base-v0x",
+    "side": "base",
+    "created_at": "2026-10-20T10:00:00Z",
+    "git": {
+      "sha": "abc123def456",
+      "ref": "refs/heads/main",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.24.0",
+      "num_cpu": 8,
+      "cpu_model": "Intel(R) Core(TM) i7-8550U",
+      "gomaxprocs": 8,
+      "hostname": "test-machine"
+    }
+  },
+  "head": {
+    "id": "run-head-v0x",
+    "side": "head",
+    "created_at": "2026-10-20T10:05:00Z",
+    "git": {
+      "sha": "def789abc012",
+      "ref": "refs/heads/feature",
+      "dirty": false
+    },
+    "env": {
+      "os": "linux",
+      "arch": "amd64",
+      "go_version": "go1.24.0",
+      "num_cpu": 8,
+      "cpu_model": "Intel(R) Core(TM) i7-8550U",
+      "gomaxprocs": 8,
+      "hostname": "test-machine"
+    }
+  },
+  "items": [
+    {
+      "benchmark": "BenchmarkEncode",
+      "metric": "sec/op",
+      "base_median": 0.0001245,
+      "head_median": 0.0001523,
+      "delta_pct": 22.33,
+      "ci": [18.5, 26.1],
+      "p_value": 0.001,
+      "cv_base": 1.5,
+      "cv_head": 1.8,
+      "n_base": 10,
+      "n_head": 10,
+      "status": "fail",
+      "reason": "exceeds_fail"
+    },
+    {
+      "benchmark": "BenchmarkEncode",
+      "metric": "B/op",
+      "base_median": 512,
+      "head_median": 512,
+      "delta_pct": 0.0,
+      "ci": [0.0, 0.0],
+      "p_value": 1.0,
+      "cv_base": 0.0,
+      "cv_head": 0.0,
+      "n_base": 10,
+      "n_head": 10,
+      "status": "unchanged",
+      "reason": "below_threshold"
+    }
+  ],
+  "verdict": "fail"
+}
