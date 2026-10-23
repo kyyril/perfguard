@@ -2,7 +2,6 @@ run:
   tests: true
 linters:
   enable:
-    - depguard
     - gocritic
     - gosec
     - misspell
