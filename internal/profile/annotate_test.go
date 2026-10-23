@@ -1,6 +1,7 @@
 package profile_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	pprof "github.com/google/pprof/profile"
