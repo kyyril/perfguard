@@ -1,0 +1,9 @@
+id: algo-slowdown
+description: Algorithmic regression replacing O(n log n) quicksort with O(n²) bubble sort
+trials: 20
+expect:
+  verdict: fail
+  metrics:
+    - benchmark: BenchmarkSort
+      metric: sec/op
+      status: fail

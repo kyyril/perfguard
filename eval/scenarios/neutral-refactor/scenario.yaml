@@ -1,0 +1,9 @@
+id: neutral-refactor
+description: Code refactoring with no performance impact (extract function, rename variable)
+trials: 20
+expect:
+  verdict: pass
+  metrics:
+    - benchmark: BenchmarkProcess
+      metric: sec/op
+      status: unchanged

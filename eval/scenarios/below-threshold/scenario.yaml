@@ -1,0 +1,9 @@
+id: below-threshold
+description: Small performance degradation (~3%) below warn threshold (5%)
+trials: 20
+expect:
+  verdict: pass
+  metrics:
+    - benchmark: BenchmarkHash
+      metric: sec/op
+      status: unchanged

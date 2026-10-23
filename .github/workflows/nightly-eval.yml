@@ -1,0 +1,64 @@
+name: Nightly Evaluation
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    name: Run Evaluation Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build PerfGuard
+        run: make build
+
+      - name: Create output directory
+        run: mkdir -p eval/results
+
+      - name: Run all scenarios
+        run: |
+          for scenario in eval/scenarios/*; do
+            if [ -d "$scenario" ]; then
+              echo "Running scenario: $(basename $scenario)"
+              ./bin/perfguard eval run --scenario "$scenario" --output eval/results || true
+            fi
+          done
+
+      - name: Generate report
+        run: |
+          ./bin/perfguard eval report \
+            --output eval/results \
+            --scenarios "eval/scenarios/*" \
+            --report eval/RESULTS.md
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-${{ github.run_number }}
+          path: |
+            eval/results/
+            eval/RESULTS.md
+          retention-days: 90
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report-${{ github.run_number }}
+          path: eval/RESULTS.md
+          retention-days: 90

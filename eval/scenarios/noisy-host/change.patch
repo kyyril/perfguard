@@ -1,0 +1,23 @@
+diff --git a/workload_test.go b/workload_test.go
+index 1234567..abcdefg 100644
+--- a/workload_test.go
++++ b/workload_test.go
+@@ -2,6 +2,17 @@ package workload
+
+ import "testing"
+
++var noise *NoiseGenerator
++
++func init() {
++	noise = NewNoiseGenerator()
++	noise.Start()
++}
++
+ func BenchmarkCompute(b *testing.B) {
++	// Background noise from init() creates measurement variability
++	// Note: In a real scenario, the noise generator would be started
++	// before benchmarks run and stopped after. For eval purposes,
++	// starting in init() simulates a noisy shared runner.
+ 	for i := 0; i < b.N; i++ {
+ 		_ = Compute(1000)
+ 	}

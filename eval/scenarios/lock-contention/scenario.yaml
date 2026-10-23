@@ -1,0 +1,13 @@
+id: lock-contention
+description: Lock contention from replacing sharded counter with single global mutex
+trials: 15
+expect:
+  verdict: fail
+  metrics:
+    - benchmark: BenchmarkCounter
+      metric: sec/op
+      status: fail
+  diagnosis:
+    profile: mutex
+    top_k: 5
+    function: sync.(*Mutex).Lock

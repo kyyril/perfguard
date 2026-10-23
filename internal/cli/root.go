@@ -44,6 +44,8 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(newCompareCmd(opts))
 	rootCmd.AddCommand(newCheckCmd(opts))
 	rootCmd.AddCommand(newBaselineCmd(opts))
+	rootCmd.AddCommand(newProfileCmd())
+	rootCmd.AddCommand(newEvalCmd())
 
 	return rootCmd
 }

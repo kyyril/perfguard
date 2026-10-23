@@ -1,0 +1,9 @@
+id: no-change-aa
+description: A/A test with identical base and head code to measure false positive rate
+trials: 30
+expect:
+  verdict: pass
+  metrics:
+    - benchmark: BenchmarkCompute
+      metric: sec/op
+      status: unchanged

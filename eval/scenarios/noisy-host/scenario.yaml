@@ -1,0 +1,9 @@
+id: noisy-host
+description: Synthetic background CPU load to induce high measurement noise (CV)
+trials: 20
+expect:
+  verdict: pass
+  metrics:
+    - benchmark: BenchmarkCompute
+      metric: sec/op
+      status: inconclusive

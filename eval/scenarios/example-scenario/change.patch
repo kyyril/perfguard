@@ -1,0 +1,13 @@
+diff --git a/process.go b/process.go
+index 1234567..abcdefg 100644
+--- a/process.go
++++ b/process.go
+@@ -4,7 +4,7 @@ import "time"
+
+ // Process simulates work with a sleep.
+ func Process(items int) {
+ 	for i := 0; i < items; i++ {
+-		time.Sleep(1 * time.Microsecond)
++		time.Sleep(2 * time.Microsecond)
+ 	}
+ }

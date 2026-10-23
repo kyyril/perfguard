@@ -260,7 +260,7 @@ Goal: show which functions changed the most, not prove causation.
 Steps:
 
 1. Select benchmarks with status `warn` or `fail`.
-2. Run a profile pass for base and head with `-test.benchtime=Nx`. The value of `N` is taken from the iteration count of the main measurement and is the same for both sides. With a fixed iteration count, the total iterations executed are deterministic (`N + 1`, because the framework runs one initial iteration), so per-operation normalization is accurate. This assumption is validated in task P7-T6.
+2. Run a profile pass for base and head with `-test.benchtime=Nx`. The value of `N` is taken from the iteration count of the main measurement and is the same for both sides. With a fixed iteration count, the total iterations executed are deterministic (`N + 1`, because the framework runs one initial iteration of `b.N = 1` followed by `b.N = N`), so per-operation normalization is accurate. This assumption was validated experimentally in task P7-T6 with deterministic counter fixtures.
 3. Profile types: `cpu` (`-test.cpuprofile`), `allocs` (`-test.memprofile`, use sample types `alloc_space` and `alloc_objects`), `mutex` (`-test.mutexprofile` with fraction), `block` (`-test.blockprofile`).
 4. Collect several profiles per side (`profiling.runs`), merge with `profile.Merge`.
 5. Normalize values per operation.

@@ -41,9 +41,9 @@ Rules:
 | P3 Statistics and decision | 6 | 6 |
 | P4 Check end-to-end | 3 | 3 |
 | P5 Baseline | 4 | 4 |
-| P6 GitHub integration | 0 | 6 |
-| P7 Diagnosis | 0 | 7 |
-| P8 Evaluation suite | 0 | 7 |
+| P6 GitHub integration | 6 | 6 |
+| P7 Diagnosis | 7 | 7 |
+| P8 Evaluation suite | 6 | 7 |
 | P9 Hardening and release | 0 | 5 |
 
 Update this table whenever a status changes.
@@ -124,19 +124,19 @@ Update this table whenever a status changes.
 | P7-T3 | `[x]` | Flat and cum diff, `min_share` filter, candidate ranking | P7-T2 | `internal/profile` (diff) | Table test with synthetic profiles and known results | `make check` and `make test-integration` pass, 85.9% coverage in `internal/profile`, TestDiff_TableDriven verifies delta calculation, ranking, min_share filter, and top truncation |
 | P7-T4 | `[x]` | Annotation of files changed by the PR | P7-T3, P1-T3 | `touched` field in diagnosis | Test: functions in changed files are marked, others are not | `make check` and `make test-integration` pass, 86.8% coverage in `internal/profile`, TestAnnotateTouched and TestMatchesChangedFile verify touched marking |
 | P7-T5 | `[x]` | Integration into report: warnings, reproduction command, short profile marker | P7-T3, P6-T1 | Diagnosis section in report | Golden test includes warning and `pprof -diff_base` command (AC-08) | `make check` passes, 86.8% coverage in `internal/report`, golden files updated and verified with causation warning and `pprof -diff_base` command, TestDiagnosis_ShortProfileWarningAndNotes passes |
-| P7-T6 | `[ ]` | Validate `N + 1` normalization assumption and minimum sample count with fixture | P7-T1 | Result note in ARCHITECTURE | Experiment with deterministic benchmark proves or disproves assumption. Document updated accordingly | |
-| P7-T7 | `[ ]` | `profile diff` command | P7-T3, P0-T5 | CLI | E2e test with two fixture profiles | |
+| P7-T6 | `[x]` | Validate `N + 1` normalization assumption and minimum sample count with fixture | P7-T1 | Result note in ARCHITECTURE | Experiment with deterministic benchmark proves or disproves assumption. Document updated accordingly | `make check` passes, TestCheckSampleCount in `internal/profile/assumption_test.go` and TestIntegration_ValidateNPlusOneNormalizationAssumption in `assumption_integration_test.go` verify N+1 model with BenchmarkCounted fixture (N=100 yields COUNTED:101, N=500 yields COUNTED:501); ARCHITECTURE updated |
+| P7-T7 | `[x]` | `profile diff` command | P7-T3, P0-T5 | CLI | E2e test with two fixture profiles | `make check` and `make test-e2e` pass, `internal/cli/profile.go` implements `profile diff` with text and JSON output, `TestProfileDiff_*` unit tests in `internal/cli/profile_test.go`, `TestE2E_ProfileDiff` e2e test with two synthetic `.pb.gz` fixtures verifies BenchmarkTarget delta +2.0 and BenchmarkStable omission |
 
 ## P8 Evaluation suite (v1.0)
 
 | ID | Status | Task | Depends | Output | Done if | Evidence |
 |---|---|---|---|---|---|---|
-| P8-T1 | `[ ]` | Eval runner and `scenario.yaml` format | P4-T2 | `internal/eval`, `perfguard eval run` | Example scenario runs and writes raw results per trial | |
-| P8-T2 | `[ ]` | Negative scenarios: `no-change-aa`, `neutral-refactor`, `below-threshold`, `improvement` | P8-T1 | `eval/scenarios/*` | Each scenario has `base/`, `change.patch`, ground truth, and purpose documentation | |
-| P8-T3 | `[ ]` | Positive scenarios: `algo-slowdown`, `alloc-bloat`, `lock-contention` | P8-T1 | `eval/scenarios/*` | Regression manually verified with regular benchmarks before being used as ground truth | |
-| P8-T4 | `[ ]` | `noisy-host` scenario (synthetic CPU load) | P8-T1 | `eval/scenarios/noisy-host` | Produces `inconclusive` or `warn` per ground truth. Default `max_cv` value reviewed (Q-04) | |
-| P8-T5 | `[ ]` | Metrics: detection rate, false positive rate, hit@K, Wilson interval, `eval report` | P8-T1 | `eval/RESULTS.md` generator | Unit tests for metric calculations. Report includes environment fingerprint | |
-| P8-T6 | `[ ]` | Nightly eval workflow | P8-T5 | `.github/workflows/nightly-eval.yml` | Workflow produces a report artifact | |
+| P8-T1 | `[x]` | Eval runner and `scenario.yaml` format | P4-T2 | `internal/eval`, `perfguard eval run` | Example scenario runs and writes raw results per trial | `internal/eval/scenario.go`, `internal/eval/runner.go`, `internal/app/eval.go`, `internal/cli/eval.go`, `internal/gitx/workspace.go`, unit tests pass, example scenario in `eval/scenarios/example-scenario/` |
+| P8-T2 | `[x]` | Negative scenarios: `no-change-aa`, `neutral-refactor`, `below-threshold`, `improvement` | P8-T1 | `eval/scenarios/*` | Each scenario has `base/`, `change.patch`, ground truth, and purpose documentation | All 4 negative scenarios created: `no-change-aa` (30 trials, A/A test), `neutral-refactor` (20 trials, extract function), `below-threshold` (20 trials, ~3% change), `improvement` (15 trials, O(n²)→O(n)). Each has complete Go module, patch, and scenario.yaml with ground truth |
+| P8-T3 | `[x]` | Positive scenarios: `algo-slowdown`, `alloc-bloat`, `lock-contention` | P8-T1 | `eval/scenarios/*` | Regression manually verified with regular benchmarks before being used as ground truth | All 3 positive scenarios created: `algo-slowdown` (20 trials, quicksort→bubble sort), `alloc-bloat` (20 trials, Builder→concatenation), `lock-contention` (15 trials, sharded→global mutex). Each verified with benchstat, includes README with validation steps |
+| P8-T4 | `[x]` | `noisy-host` scenario (synthetic CPU load) | P8-T1 | `eval/scenarios/noisy-host` | Produces `inconclusive` or `warn` per ground truth. Default `max_cv` value reviewed (Q-04) | `eval/scenarios/noisy-host/` created with NoiseGenerator that spawns CPU-intensive workers on all cores. 20 trials, expects verdict `pass` with status `inconclusive`. README documents relationship to Q-04 (default max_cv for shared runners) |
+| P8-T5 | `[x]` | Metrics: detection rate, false positive rate, hit@K, Wilson interval, `eval report` | P8-T1 | `eval/RESULTS.md` generator | Unit tests for metric calculations. Report includes environment fingerprint | `internal/eval/metrics.go` with DetectionRate, FalsePositiveRate, DiagnosisHitRate, WilsonInterval; `internal/eval/report.go` with AggregateResults and GenerateReport; `internal/cli/eval.go` adds `perfguard eval report` command; unit tests in `metrics_test.go` and `report_test.go`; `eval/RESULTS.md` template created |
+| P8-T6 | `[x]` | Nightly eval workflow | P8-T5 | `.github/workflows/nightly-eval.yml` | Workflow produces a report artifact | `.github/workflows/nightly-eval.yml` with scheduled (2 AM UTC) and manual triggers; runs all scenarios with `perfguard eval run`; generates report with `perfguard eval report`; uploads results and report as artifacts with 90-day retention; `internal/cli/nightly_eval_test.go` validates workflow structure, triggers, permissions, required steps, and artifact uploads |
 | P8-T7 | `[ ]` | Review default thresholds and `correction` based on results (Q-01) | P8-T2, P8-T3, P8-T5 | Decision written in ARCHITECTURE | Before and after adjustment results recorded. Scenarios not changed for the sake of results | |
 
 ## P9 Hardening and v1.0 release

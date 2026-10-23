@@ -1,0 +1,21 @@
+diff --git a/builder.go b/builder.go
+index 1234567..abcdefg 100644
+--- a/builder.go
++++ b/builder.go
+@@ -1,11 +1,10 @@
+ package builder
+
+-import "strings"
+-
+-// Build constructs a message from parts efficiently using strings.Builder.
++// Build constructs a message from parts using repeated string concatenation.
+ func Build(parts []string) string {
+-	var b strings.Builder
++	result := ""
+ 	for _, p := range parts {
+-		b.WriteString(p)
++		result += p
+ 	}
+-	return b.String()
++	return result
+ }

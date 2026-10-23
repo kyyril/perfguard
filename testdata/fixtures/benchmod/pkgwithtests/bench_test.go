@@ -19,3 +19,12 @@ func BenchmarkMixed(b *testing.B) {
 		_ = make([]byte, 1024)
 	}
 }
+
+var CountedTotal int64
+
+func BenchmarkCounted(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		CountedTotal++
+	}
+	b.Logf("COUNTED:%d", CountedTotal)
+}

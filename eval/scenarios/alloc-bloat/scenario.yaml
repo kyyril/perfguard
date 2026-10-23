@@ -1,0 +1,12 @@
+id: alloc-bloat
+description: Memory allocation regression from efficient strings.Builder to repeated concatenation
+trials: 20
+expect:
+  verdict: fail
+  metrics:
+    - benchmark: BenchmarkBuild
+      metric: B/op
+      status: fail
+    - benchmark: BenchmarkBuild
+      metric: allocs/op
+      status: fail

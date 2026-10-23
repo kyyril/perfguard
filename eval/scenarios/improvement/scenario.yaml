@@ -1,0 +1,9 @@
+id: improvement
+description: Performance improvement (replace O(n²) with O(n)) should report improved, not fail
+trials: 15
+expect:
+  verdict: pass
+  metrics:
+    - benchmark: BenchmarkSearch
+      metric: sec/op
+      status: improved

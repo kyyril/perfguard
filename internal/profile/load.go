@@ -182,3 +182,20 @@ func ExtractFunctions(prof *pprof.Profile, sampleIdx int, totalOps int64) (map[s
 
 	return res, nil
 }
+
+// CheckSampleCount checks if the profile has at least minSamples samples.
+// If not, it returns a warning string. If satisfied, it returns empty string.
+func CheckSampleCount(prof *pprof.Profile, minSamples int) string {
+	if prof == nil {
+		return "warning: profile is nil"
+	}
+	if minSamples <= 0 {
+		return ""
+	}
+
+	totalSamples := int64(len(prof.Sample))
+	if totalSamples < int64(minSamples) {
+		return fmt.Sprintf("warning: profile too short (%d samples, minimum %d)", totalSamples, minSamples)
+	}
+	return ""
+}

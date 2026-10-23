@@ -1,0 +1,9 @@
+id: example-scenario
+description: Example scenario demonstrating a 2x slowdown in Process function
+trials: 5
+expect:
+  verdict: fail
+  metrics:
+    - benchmark: BenchmarkProcess
+      metric: sec/op
+      status: fail

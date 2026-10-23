@@ -1,0 +1,22 @@
+diff --git a/process.go b/process.go
+index 1234567..abcdefg 100644
+--- a/process.go
++++ b/process.go
+@@ -2,10 +2,16 @@ package refactor
+
+ // Process transforms input data.
+ func Process(data []int) int {
++	return calculate(data)
++}
++
++// calculate computes the result from data.
++func calculate(data []int) int {
+ 	result := 0
+ 	for _, v := range data {
+-		result += v * 2
++		result += multiply(v, 2)
+ 	}
+ 	return result
+ }
++
++func multiply(a, b int) int { return a * b }

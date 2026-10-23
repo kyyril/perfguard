@@ -1,0 +1,51 @@
+diff --git a/counter.go b/counter.go
+index 1234567..abcdefg 100644
+--- a/counter.go
++++ b/counter.go
+@@ -2,32 +2,23 @@ package counter
+
+ import "sync"
+
+-// Counter tracks counts with per-shard mutexes to reduce contention.
++// Counter tracks counts with a single global mutex.
+ type Counter struct {
+-	shards [8]shard
++	mu    sync.Mutex
++	count int64
+ }
+
+-type shard struct {
+-	mu    sync.Mutex
+-	count int64
+-}
+-
+ // New creates a new Counter.
+ func New() *Counter {
+ 	return &Counter{}
+ }
+
+ // Inc increments the counter.
+-func (c *Counter) Inc(key int) {
+-	idx := key % len(c.shards)
+-	c.shards[idx].mu.Lock()
+-	c.shards[idx].count++
+-	c.shards[idx].mu.Unlock()
++func (c *Counter) Inc(_ int) {
++	c.mu.Lock()
++	c.count++
++	c.mu.Unlock()
+ }
+
+ // Total returns the sum across all shards.
+ func (c *Counter) Total() int64 {
+-	var total int64
+-	for i := range c.shards {
+-		c.shards[i].mu.Lock()
+-		total += c.shards[i].count
+-		c.shards[i].mu.Unlock()
+-	}
+-	return total
++	c.mu.Lock()
++	defer c.mu.Unlock()
++	return c.count
+ }

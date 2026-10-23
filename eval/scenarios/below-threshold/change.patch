@@ -1,0 +1,14 @@
+diff --git a/hash.go b/hash.go
+index 1234567..abcdefg 100644
+--- a/hash.go
++++ b/hash.go
+@@ -3,7 +3,8 @@ package hashtest
+ // Hash computes a simple hash of the input.
+ func Hash(data []byte) uint64 {
+ 	var h uint64 = 14695981039346656037
+-	for _, b := range data {
++	for i, b := range data {
++		h ^= uint64(i)
+ 		h ^= uint64(b)
+ 		h *= 1099511628211
+ 	}

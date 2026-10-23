@@ -1,0 +1,12 @@
+diff --git a/compute.go b/compute.go
+index 1234567..1234567 100644
+--- a/compute.go
++++ b/compute.go
+@@ -3,6 +3,7 @@ package nochange
+ // Compute performs a deterministic calculation.
+ func Compute(n int) int {
+ 	sum := 0
++	// No functional change
+ 	for i := 0; i < n; i++ {
+ 		sum += i * i
+ 	}
