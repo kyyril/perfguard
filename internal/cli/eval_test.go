@@ -37,7 +37,7 @@ func TestEvalRunCmd_ValidScenario(t *testing.T) {
 	}
 
 	goMod := "module example.com/evaltest\n\ngo 1.24\n"
-	if err := os.WriteFile(filepath.Join(baseDir, "go.mod"), []byte(goMod), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(baseDir, "go.mod"), []byte(goMod), 0o600); err != nil {
 		t.Fatalf("write go.mod: %v", err)
 	}
 
@@ -47,7 +47,7 @@ func Sum(a, b int) int {
 	return a + b
 }
 `
-	if err := os.WriteFile(filepath.Join(baseDir, "main.go"), []byte(mainGo), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(baseDir, "main.go"), []byte(mainGo), 0o600); err != nil {
 		t.Fatalf("write main.go: %v", err)
 	}
 
@@ -61,7 +61,7 @@ func BenchmarkSum(b *testing.B) {
 	}
 }
 `
-	if err := os.WriteFile(filepath.Join(baseDir, "bench_test.go"), []byte(benchGo), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(baseDir, "bench_test.go"), []byte(benchGo), 0o600); err != nil {
 		t.Fatalf("write bench_test.go: %v", err)
 	}
 
@@ -77,7 +77,7 @@ index 1234567..abcdefg 100644
 +	return a + b + 0
  }
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte(patchContent), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte(patchContent), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
@@ -87,7 +87,7 @@ trials: 1
 expect:
   verdict: pass
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -137,7 +137,7 @@ func TestEvalRunCmd_InvalidScenario(t *testing.T) {
 	scenarioYAML := `description: Missing required ID field
 trials: 1
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 

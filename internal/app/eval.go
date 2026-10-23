@@ -11,6 +11,7 @@ import (
 	"github.com/kyyril/perfguard/internal/config"
 	"github.com/kyyril/perfguard/internal/eval"
 	"github.com/kyyril/perfguard/internal/gitx"
+	"github.com/kyyril/perfguard/internal/model"
 )
 
 // EvalRunOptions specifies options for running an evaluation scenario.

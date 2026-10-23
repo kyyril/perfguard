@@ -16,37 +16,37 @@ func TestIsSuccessfulTrial(t *testing.T) {
 	}{
 		{
 			name:   "pass matches pass",
-			expect: ExpectedOutcome{Verdict: VerdictPass},
+			expect: ExpectedOutcome{Verdict: model.VerdictPass},
 			actual: model.VerdictPass,
 			want:   true,
 		},
 		{
 			name:   "fail matches fail",
-			expect: ExpectedOutcome{Verdict: VerdictFail},
+			expect: ExpectedOutcome{Verdict: model.VerdictFail},
 			actual: model.VerdictFail,
 			want:   true,
 		},
 		{
 			name:   "warn matches warn",
-			expect: ExpectedOutcome{Verdict: VerdictWarn},
+			expect: ExpectedOutcome{Verdict: model.VerdictWarn},
 			actual: model.VerdictWarn,
 			want:   true,
 		},
 		{
 			name:   "pass does not match fail",
-			expect: ExpectedOutcome{Verdict: VerdictPass},
+			expect: ExpectedOutcome{Verdict: model.VerdictPass},
 			actual: model.VerdictFail,
 			want:   false,
 		},
 		{
 			name:   "fail does not match pass",
-			expect: ExpectedOutcome{Verdict: VerdictFail},
+			expect: ExpectedOutcome{Verdict: model.VerdictFail},
 			actual: model.VerdictPass,
 			want:   false,
 		},
 		{
 			name:   "pass does not match warn",
-			expect: ExpectedOutcome{Verdict: VerdictPass},
+			expect: ExpectedOutcome{Verdict: model.VerdictPass},
 			actual: model.VerdictWarn,
 			want:   false,
 		},
@@ -66,31 +66,29 @@ func TestDiagnosisMatches(t *testing.T) {
 	tests := []struct {
 		name         string
 		expectedFunc string
-		regressions  []model.Regression
+		diagnoses    []model.Diagnosis
 		want         bool
 	}{
 		{
 			name:         "empty expected function",
 			expectedFunc: "",
-			regressions:  []model.Regression{},
+			diagnoses:    []model.Diagnosis{},
 			want:         false,
 		},
 		{
-			name:         "no regressions",
+			name:         "no diagnoses",
 			expectedFunc: "slowFunction",
-			regressions:  []model.Regression{},
+			diagnoses:    []model.Diagnosis{},
 			want:         false,
 		},
 		{
 			name:         "match in first candidate",
 			expectedFunc: "slowFunction",
-			regressions: []model.Regression{
+			diagnoses: []model.Diagnosis{
 				{
-					Diagnosis: &model.Diagnosis{
-						ContributorCandidates: []model.Candidate{
-							{FunctionName: "main.slowFunction"},
-							{FunctionName: "main.otherFunc"},
-						},
+					Candidates: []model.Candidate{
+						{Function: "main.slowFunction"},
+						{Function: "main.otherFunc"},
 					},
 				},
 			},
@@ -99,14 +97,12 @@ func TestDiagnosisMatches(t *testing.T) {
 		{
 			name:         "match in third candidate",
 			expectedFunc: "targetFunc",
-			regressions: []model.Regression{
+			diagnoses: []model.Diagnosis{
 				{
-					Diagnosis: &model.Diagnosis{
-						ContributorCandidates: []model.Candidate{
-							{FunctionName: "main.fastFunc"},
-							{FunctionName: "main.mediumFunc"},
-							{FunctionName: "pkg.targetFunc"},
-						},
+					Candidates: []model.Candidate{
+						{Function: "main.fastFunc"},
+						{Function: "main.mediumFunc"},
+						{Function: "pkg.targetFunc"},
 					},
 				},
 			},
@@ -115,26 +111,14 @@ func TestDiagnosisMatches(t *testing.T) {
 		{
 			name:         "no match in top 3",
 			expectedFunc: "targetFunc",
-			regressions: []model.Regression{
+			diagnoses: []model.Diagnosis{
 				{
-					Diagnosis: &model.Diagnosis{
-						ContributorCandidates: []model.Candidate{
-							{FunctionName: "main.func1"},
-							{FunctionName: "main.func2"},
-							{FunctionName: "main.func3"},
-							{FunctionName: "main.targetFunc"},
-						},
+					Candidates: []model.Candidate{
+						{Function: "main.func1"},
+						{Function: "main.func2"},
+						{Function: "main.func3"},
+						{Function: "main.targetFunc"},
 					},
-				},
-			},
-			want: false,
-		},
-		{
-			name:         "nil diagnosis",
-			expectedFunc: "slowFunction",
-			regressions: []model.Regression{
-				{
-					Diagnosis: nil,
 				},
 			},
 			want: false,
@@ -142,11 +126,9 @@ func TestDiagnosisMatches(t *testing.T) {
 		{
 			name:         "empty candidates",
 			expectedFunc: "slowFunction",
-			regressions: []model.Regression{
+			diagnoses: []model.Diagnosis{
 				{
-					Diagnosis: &model.Diagnosis{
-						ContributorCandidates: []model.Candidate{},
-					},
+					Candidates: []model.Candidate{},
 				},
 			},
 			want: false,
@@ -155,7 +137,7 @@ func TestDiagnosisMatches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := diagnosisMatches(tt.expectedFunc, tt.regressions)
+			got := diagnosisMatches(tt.expectedFunc, tt.diagnoses)
 			if got != tt.want {
 				t.Errorf("diagnosisMatches() = %v, want %v", got, tt.want)
 			}
@@ -172,8 +154,10 @@ func TestGenerateReport(t *testing.T) {
 					Description: "Test scenario for unit testing",
 					Trials:      20,
 					Expect: ExpectedOutcome{
-						Verdict:          VerdictFail,
-						ExpectedFunction: "slowFunc",
+						Verdict: model.VerdictFail,
+						Diagnosis: &DiagnosisExpect{
+							Function: "slowFunc",
+						},
 					},
 				},
 				Metrics: Metrics{

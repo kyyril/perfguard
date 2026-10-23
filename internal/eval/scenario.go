@@ -33,8 +33,8 @@ type Scenario struct {
 
 // ExpectedOutcome defines the ground truth for a scenario.
 type ExpectedOutcome struct {
-	Verdict   model.Verdict  `yaml:"verdict"`
-	Metrics   []MetricExpect `yaml:"metrics,omitempty"`
+	Verdict   model.Verdict    `yaml:"verdict"`
+	Metrics   []MetricExpect   `yaml:"metrics,omitempty"`
 	Diagnosis *DiagnosisExpect `yaml:"diagnosis,omitempty"`
 }
 
@@ -75,7 +75,7 @@ func LoadScenario(dir string) (Scenario, error) {
 	s.Directory = dir
 
 	if err := validateScenario(&s); err != nil {
-		return Scenario{}, fmt.Errorf("%w: %w", ErrScenario, err)
+		return Scenario{}, fmt.Errorf("%w: scenario %s: %v", ErrScenario, s.ID, err)
 	}
 
 	return s, nil

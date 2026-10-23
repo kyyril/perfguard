@@ -14,19 +14,19 @@ func TestNightlyEvalWorkflowYML(t *testing.T) {
 	}
 
 	var wf struct {
-		Name        string `yaml:"name"`
+		Name        string                 `yaml:"name"`
 		On          map[string]interface{} `yaml:"on"`
-		Permissions map[string]string `yaml:"permissions"`
-		Jobs        map[string]struct{
+		Permissions map[string]string      `yaml:"permissions"`
+		Jobs        map[string]struct {
 			Name    string `yaml:"name"`
 			RunsOn  string `yaml:"runs-on"`
 			Timeout string `yaml:"timeout-minutes"`
-			Steps   []struct{
-				Name string `yaml:"name"`
-				Uses string `yaml:"uses,omitempty"`
-				Run  string `yaml:"run,omitempty"`
+			Steps   []struct {
+				Name string                 `yaml:"name"`
+				Uses string                 `yaml:"uses,omitempty"`
+				Run  string                 `yaml:"run,omitempty"`
 				With map[string]interface{} `yaml:"with,omitempty"`
-				If   string `yaml:"if,omitempty"`
+				If   string                 `yaml:"if,omitempty"`
 			} `yaml:"steps"`
 		} `yaml:"jobs"`
 	}
@@ -72,13 +72,13 @@ func TestNightlyEvalWorkflowYML(t *testing.T) {
 
 	// Check required steps
 	requiredSteps := map[string]bool{
-		"Checkout code":       false,
-		"Set up Go":           false,
-		"Build PerfGuard":     false,
-		"Run all scenarios":   false,
-		"Generate report":     false,
-		"Upload results":      false,
-		"Upload report":       false,
+		"Checkout code":     false,
+		"Set up Go":         false,
+		"Build PerfGuard":   false,
+		"Run all scenarios": false,
+		"Generate report":   false,
+		"Upload results":    false,
+		"Upload report":     false,
 	}
 
 	for _, step := range evalJob.Steps {

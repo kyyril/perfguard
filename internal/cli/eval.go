@@ -44,7 +44,7 @@ directory, applies change.patch, and runs perfguard check in same-runner mode.
 Results are written to the output directory as JSON.`,
 		Example: `  perfguard eval run --scenario eval/scenarios/algo-slowdown --output eval/results
   perfguard eval run --scenario eval/scenarios/no-change-aa`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := context.Background()
 
 			if scenarioDir == "" {
@@ -101,9 +101,9 @@ Results are written to the output directory as JSON.`,
 
 func newEvalReportCmd() *cobra.Command {
 	var (
-		outputDir   string
+		outputDir     string
 		scenariosGlob string
-		reportPath  string
+		reportPath    string
 	)
 
 	cmd := &cobra.Command{
@@ -115,7 +115,7 @@ The report includes detection rates, false positive rates, diagnosis hit rates,
 and confidence intervals for all metrics.`,
 		Example: `  perfguard eval report --output eval/results --scenarios "eval/scenarios/*"
   perfguard eval report --output .perfguard/eval --report eval/RESULTS.md`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := context.Background()
 
 			if outputDir == "" {
@@ -178,7 +178,7 @@ and confidence intervals for all metrics.`,
 				return WrapExecution(fmt.Errorf("create report directory: %w", err))
 			}
 
-			if err := os.WriteFile(reportPath, []byte(report), 0644); err != nil {
+			if err := os.WriteFile(reportPath, []byte(report), 0o600); err != nil {
 				return WrapExecution(fmt.Errorf("write report: %w", err))
 			}
 

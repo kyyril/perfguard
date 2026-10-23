@@ -3,6 +3,7 @@ package eval
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -48,6 +49,14 @@ func (c *fakeChecker) RunCheck(_ context.Context, _ CheckRequest) (model.Compari
 		return model.Comparison{}, c.err
 	}
 	return c.comparison, nil
+}
+
+type customChecker struct {
+	fn func(context.Context, CheckRequest) (model.Comparison, error)
+}
+
+func (c *customChecker) RunCheck(ctx context.Context, req CheckRequest) (model.Comparison, error) {
+	return c.fn(ctx, req)
 }
 
 func TestRun_SingleTrial(t *testing.T) {
@@ -168,19 +177,20 @@ func TestRun_CheckerError(t *testing.T) {
 		workspace: &fakeWorkspace{dir: tmpDir},
 	}
 
+	// First trial errors, second succeeds
 	callCount := 0
-	fakeChecker := &fakeChecker{}
-	originalRunCheck := func(_ context.Context, _ CheckRequest) (model.Comparison, error) {
-		callCount++
-		if callCount == 1 {
-			return model.Comparison{}, errors.New("check failed")
-		}
-		return model.Comparison{
-			SchemaVersion: model.CurrentSchemaVersion,
-			Verdict:       model.VerdictPass,
-		}, nil
+	fakeChecker := &customChecker{
+		fn: func(_ context.Context, _ CheckRequest) (model.Comparison, error) {
+			callCount++
+			if callCount == 1 {
+				return model.Comparison{}, errors.New("check failed")
+			}
+			return model.Comparison{
+				SchemaVersion: model.CurrentSchemaVersion,
+				Verdict:       model.VerdictPass,
+			}, nil
+		},
 	}
-	fakeChecker.RunCheck = originalRunCheck
 
 	result, err := Run(context.Background(), RunOptions{
 		ScenarioDir: scenarioDir,
@@ -216,16 +226,17 @@ func TestRun_ContextCancellation(t *testing.T) {
 	}
 
 	callCount := 0
-	fakeChecker := &fakeChecker{}
-	fakeChecker.RunCheck = func(_ context.Context, _ CheckRequest) (model.Comparison, error) {
-		callCount++
-		if callCount == 2 {
-			cancel()
-		}
-		return model.Comparison{
-			SchemaVersion: model.CurrentSchemaVersion,
-			Verdict:       model.VerdictPass,
-		}, nil
+	fakeChecker := &customChecker{
+		fn: func(_ context.Context, _ CheckRequest) (model.Comparison, error) {
+			callCount++
+			if callCount == 2 {
+				cancel()
+			}
+			return model.Comparison{
+				SchemaVersion: model.CurrentSchemaVersion,
+				Verdict:       model.VerdictPass,
+			}, nil
+		},
 	}
 
 	result, err := Run(ctx, RunOptions{
@@ -321,12 +332,12 @@ func createTestScenario(t *testing.T, baseDir, id string, trials int) string {
 	}
 
 	goMod := "module example.com/testmod\n\ngo 1.24\n"
-	if err := os.WriteFile(filepath.Join(baseCodeDir, "go.mod"), []byte(goMod), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(baseCodeDir, "go.mod"), []byte(goMod), 0o600); err != nil {
 		t.Fatalf("write go.mod: %v", err)
 	}
 
 	mainGo := "package testmod\n\nfunc Add(a, b int) int { return a + b }\n"
-	if err := os.WriteFile(filepath.Join(baseCodeDir, "main.go"), []byte(mainGo), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(baseCodeDir, "main.go"), []byte(mainGo), 0o600); err != nil {
 		t.Fatalf("write main.go: %v", err)
 	}
 
@@ -340,19 +351,13 @@ index 1234567..abcdefg 100644
 -func Add(a, b int) int { return a + b }
 +func Add(a, b int) int { return a + b + 0 }
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte(patchContent), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte(patchContent), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
-	scenarioYAML := "id: " + id + "\ndescription: Test scenario\ntrials: "
-	if trials < 10 {
-		scenarioYAML += string(rune(trials + '0'))
-	} else {
-		scenarioYAML += "10"
-	}
-	scenarioYAML += "\n"
+	scenarioYAML := fmt.Sprintf("id: %s\ndescription: Test scenario\ntrials: %d\nexpect:\n  verdict: fail\n", id, trials)
 
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 

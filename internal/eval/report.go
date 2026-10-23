@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"perfguard/internal/model"
+	"github.com/kyyril/perfguard/internal/model"
 )
 
 // ScenarioResult aggregates all trials for a single scenario.
@@ -36,7 +36,7 @@ type EnvironmentFingerprint struct {
 }
 
 // AggregateResults reads all trial results for a scenario and computes metrics.
-func AggregateResults(ctx context.Context, scenario Scenario, outputDir string) (ScenarioResult, error) {
+func AggregateResults(_ context.Context, scenario Scenario, outputDir string) (ScenarioResult, error) {
 	scenarioDir := filepath.Join(outputDir, scenario.ID)
 	entries, err := os.ReadDir(scenarioDir)
 	if err != nil {
@@ -85,9 +85,9 @@ func AggregateResults(ctx context.Context, scenario Scenario, outputDir string) 
 		}
 
 		// Check diagnosis hit
-		if expectOutcome.Verdict == VerdictFail && actualVerdict == model.VerdictFail {
+		if expectOutcome.Verdict == model.VerdictFail && actualVerdict == model.VerdictFail {
 			metrics.DiagnosisTrials++
-			if diagnosisMatches(expectOutcome.ExpectedFunction, comp.Regressions) {
+			if expectOutcome.Diagnosis != nil && diagnosisMatches(expectOutcome.Diagnosis.Function, comp.Diagnosis) {
 				metrics.DiagnosisHits++
 			}
 		}
@@ -103,11 +103,11 @@ func AggregateResults(ctx context.Context, scenario Scenario, outputDir string) 
 // isSuccessfulTrial checks if the actual verdict matches the expected outcome.
 func isSuccessfulTrial(expect ExpectedOutcome, actual model.Verdict) bool {
 	switch expect.Verdict {
-	case VerdictPass:
+	case model.VerdictPass:
 		return actual == model.VerdictPass
-	case VerdictFail:
+	case model.VerdictFail:
 		return actual == model.VerdictFail
-	case VerdictWarn:
+	case model.VerdictWarn:
 		return actual == model.VerdictWarn
 	default:
 		return false
@@ -115,21 +115,21 @@ func isSuccessfulTrial(expect ExpectedOutcome, actual model.Verdict) bool {
 }
 
 // diagnosisMatches checks if the expected function appears in top K candidates.
-func diagnosisMatches(expectedFunc string, regressions []model.Regression) bool {
+func diagnosisMatches(expectedFunc string, diagnoses []model.Diagnosis) bool {
 	if expectedFunc == "" {
 		return false
 	}
 
 	const topK = 3
-	for _, reg := range regressions {
-		if reg.Diagnosis == nil || len(reg.Diagnosis.ContributorCandidates) == 0 {
+	for _, diag := range diagnoses {
+		if len(diag.Candidates) == 0 {
 			continue
 		}
-		for i, cand := range reg.Diagnosis.ContributorCandidates {
+		for i, cand := range diag.Candidates {
 			if i >= topK {
 				break
 			}
-			if strings.Contains(cand.FunctionName, expectedFunc) {
+			if strings.Contains(cand.Function, expectedFunc) {
 				return true
 			}
 		}
@@ -142,46 +142,46 @@ func GenerateReport(data ReportData) string {
 	var sb strings.Builder
 
 	sb.WriteString("# PerfGuard Evaluation Results\n\n")
-	sb.WriteString(fmt.Sprintf("Generated: %s\n\n", data.Environment.Timestamp()))
+	fmt.Fprintf(&sb, "Generated: %s\n\n", data.Environment.Timestamp())
 
 	// Environment section
 	sb.WriteString("## Environment\n\n")
-	sb.WriteString(fmt.Sprintf("- OS: %s\n", data.Environment.OS))
-	sb.WriteString(fmt.Sprintf("- Arch: %s\n", data.Environment.Arch))
-	sb.WriteString(fmt.Sprintf("- Go: %s\n", data.Environment.GoVer))
-	sb.WriteString(fmt.Sprintf("- CPU cores: %d\n", data.Environment.NumCPU))
-	sb.WriteString(fmt.Sprintf("- Hostname: %s\n\n", data.Environment.Hostnam))
+	fmt.Fprintf(&sb, "- OS: %s\n", data.Environment.OS)
+	fmt.Fprintf(&sb, "- Arch: %s\n", data.Environment.Arch)
+	fmt.Fprintf(&sb, "- Go: %s\n", data.Environment.GoVer)
+	fmt.Fprintf(&sb, "- CPU cores: %d\n", data.Environment.NumCPU)
+	fmt.Fprintf(&sb, "- Hostname: %s\n\n", data.Environment.Hostnam)
 
 	// Summary section
 	sb.WriteString("## Summary\n\n")
-	sb.WriteString(fmt.Sprintf("Total scenarios: %d\n\n", len(data.Scenarios)))
+	fmt.Fprintf(&sb, "Total scenarios: %d\n\n", len(data.Scenarios))
 
 	// Scenario results
 	sb.WriteString("## Scenario Results\n\n")
 	for _, sr := range data.Scenarios {
-		sb.WriteString(fmt.Sprintf("### %s\n\n", sr.Scenario.ID))
-		sb.WriteString(fmt.Sprintf("**Description:** %s\n\n", sr.Scenario.Description))
-		sb.WriteString(fmt.Sprintf("**Expected verdict:** %s\n\n", sr.Scenario.Expect.Verdict))
-		sb.WriteString(fmt.Sprintf("**Trials:** %d\n\n", sr.Metrics.TotalTrials))
+		fmt.Fprintf(&sb, "### %s\n\n", sr.Scenario.ID)
+		fmt.Fprintf(&sb, "**Description:** %s\n\n", sr.Scenario.Description)
+		fmt.Fprintf(&sb, "**Expected verdict:** %s\n\n", sr.Scenario.Expect.Verdict)
+		fmt.Fprintf(&sb, "**Trials:** %d\n\n", sr.Metrics.TotalTrials)
 
 		detRate := sr.Metrics.DetectionRate()
 		lower, upper := WilsonInterval(sr.Metrics.SuccessfulRuns, sr.Metrics.TotalTrials, 0.95)
-		sb.WriteString(fmt.Sprintf("**Detection rate:** %s %s\n\n",
+		fmt.Fprintf(&sb, "**Detection rate:** %s %s\n\n",
 			FormatPercent(detRate),
-			FormatInterval(lower, upper)))
+			FormatInterval(lower, upper))
 
 		if sr.Metrics.DiagnosisTrials > 0 {
 			diagRate := sr.Metrics.DiagnosisHitRate()
 			dLower, dUpper := WilsonInterval(sr.Metrics.DiagnosisHits, sr.Metrics.DiagnosisTrials, 0.95)
-			sb.WriteString(fmt.Sprintf("**Diagnosis hit rate:** %s %s (K=3)\n\n",
+			fmt.Fprintf(&sb, "**Diagnosis hit rate:** %s %s (K=3)\n\n",
 				FormatPercent(diagRate),
-				FormatInterval(dLower, dUpper)))
+				FormatInterval(dLower, dUpper))
 		}
 
 		if len(sr.FailureExamples) > 0 {
 			sb.WriteString("**Failure examples:**\n\n")
 			for _, ex := range sr.FailureExamples {
-				sb.WriteString(fmt.Sprintf("- %s\n", ex))
+				fmt.Fprintf(&sb, "- %s\n", ex)
 			}
 			sb.WriteString("\n")
 		}
@@ -191,7 +191,7 @@ func GenerateReport(data ReportData) string {
 	sb.WriteString("## False Positive Analysis\n\n")
 	var totalNegTrials, totalFails, totalWarns int
 	for _, sr := range data.Scenarios {
-		if sr.Scenario.Expect.Verdict == VerdictPass {
+		if sr.Scenario.Expect.Verdict == model.VerdictPass {
 			totalNegTrials += sr.Metrics.TotalTrials
 			for i := 0; i < sr.Metrics.TotalTrials; i++ {
 				if i >= sr.Metrics.SuccessfulRuns {
@@ -206,12 +206,12 @@ func GenerateReport(data ReportData) string {
 	if totalNegTrials > 0 {
 		fpFail, fpWarn := FalsePositiveRate(totalFails, totalWarns, totalNegTrials)
 		fLower, fUpper := WilsonInterval(totalFails, totalNegTrials, 0.95)
-		sb.WriteString(fmt.Sprintf("**Fail false positive rate:** %s %s\n\n",
+		fmt.Fprintf(&sb, "**Fail false positive rate:** %s %s\n\n",
 			FormatPercent(fpFail),
-			FormatInterval(fLower, fUpper)))
-		sb.WriteString(fmt.Sprintf("**Warn false positive rate:** %s %s\n\n",
+			FormatInterval(fLower, fUpper))
+		fmt.Fprintf(&sb, "**Warn false positive rate:** %s %s\n\n",
 			FormatPercent(fpWarn),
-			FormatInterval(0, 0)))
+			FormatInterval(0, 0))
 	} else {
 		sb.WriteString("No negative scenarios in this run.\n\n")
 	}

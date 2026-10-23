@@ -28,7 +28,7 @@ index 1234567..abcdefg 100644
  func main() {}
 +// comment
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte(patchContent), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte(patchContent), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
@@ -42,7 +42,7 @@ expect:
       metric: sec/op
       status: fail
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -81,14 +81,14 @@ func TestLoadScenario_MissingID(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(scenarioDir, "base"), 0o755); err != nil {
 		t.Fatalf("create base dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
 	scenarioYAML := `description: No ID scenario
 trials: 1
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -108,7 +108,7 @@ func TestLoadScenario_MissingBaseDir(t *testing.T) {
 	if err := os.MkdirAll(scenarioDir, 0o755); err != nil {
 		t.Fatalf("create scenario dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
@@ -116,7 +116,7 @@ func TestLoadScenario_MissingBaseDir(t *testing.T) {
 description: Missing base directory
 trials: 1
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -141,7 +141,7 @@ func TestLoadScenario_MissingPatch(t *testing.T) {
 description: Missing change.patch
 trials: 1
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -161,7 +161,7 @@ func TestLoadScenario_InvalidVerdict(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(scenarioDir, "base"), 0o755); err != nil {
 		t.Fatalf("create base dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
@@ -171,7 +171,7 @@ trials: 1
 expect:
   verdict: unknown-verdict
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -191,14 +191,16 @@ func TestLoadScenario_DefaultTrials(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(scenarioDir, "base"), 0o755); err != nil {
 		t.Fatalf("create base dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
 	scenarioYAML := `id: default-trials
 description: No trials specified
+expect:
+  verdict: pass
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
@@ -222,11 +224,11 @@ func TestListScenarios(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(dir, "base"), 0o755); err != nil {
 			t.Fatalf("create base dir for %s: %v", name, err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, "change.patch"), []byte("patch"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "change.patch"), []byte("patch"), 0o600); err != nil {
 			t.Fatalf("write patch for %s: %v", name, err)
 		}
-		yaml := "id: " + id + "\ndescription: Test\ntrials: 1\n"
-		if err := os.WriteFile(filepath.Join(dir, "scenario.yaml"), []byte(yaml), 0o644); err != nil {
+		yaml := "id: " + id + "\ndescription: Test\ntrials: 1\nexpect:\n  verdict: pass\n"
+		if err := os.WriteFile(filepath.Join(dir, "scenario.yaml"), []byte(yaml), 0o600); err != nil {
 			t.Fatalf("write scenario.yaml for %s: %v", name, err)
 		}
 	}
@@ -235,7 +237,7 @@ func TestListScenarios(t *testing.T) {
 	createScenario("scenario-b", "scenario-b")
 
 	regularFile := filepath.Join(scenariosDir, "not-a-scenario.txt")
-	if err := os.WriteFile(regularFile, []byte("ignore"), 0o644); err != nil {
+	if err := os.WriteFile(regularFile, []byte("ignore"), 0o600); err != nil {
 		t.Fatalf("write regular file: %v", err)
 	}
 
@@ -268,7 +270,7 @@ func TestLoadScenario_WithDiagnosis(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(scenarioDir, "base"), 0o755); err != nil {
 		t.Fatalf("create base dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "change.patch"), []byte("patch"), 0o600); err != nil {
 		t.Fatalf("write patch: %v", err)
 	}
 
@@ -282,7 +284,7 @@ expect:
     top_k: 5
     function: example.com/pkg.SlowFunction
 `
-	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(scenarioDir, "scenario.yaml"), []byte(scenarioYAML), 0o600); err != nil {
 		t.Fatalf("write scenario.yaml: %v", err)
 	}
 
