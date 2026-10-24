@@ -5,7 +5,7 @@ benchmarks:
     - "./internal/benchparse"
     - "./internal/stats"
   include: "."
-  count: 5
+  count: 10
   benchtime: "100ms"
 
 thresholds:
