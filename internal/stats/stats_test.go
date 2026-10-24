@@ -494,11 +494,6 @@ func BenchmarkMannWhitneyU(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		// Simulate performance regression
-		sum := 0
-		for j := 0; j < 50000; j++ {
-			sum += j
-		}
 		_, _, _ = stats.MannWhitneyU(s1, s2)
 	}
 }
