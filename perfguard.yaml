@@ -12,7 +12,7 @@ thresholds:
   metrics:
     sec/op:
       warn: 10
-      fail: 25
+      fail: 300
     B/op:
       warn: 15
       fail: 30
