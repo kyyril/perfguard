@@ -36,4 +36,3 @@ jobs:
           config: perfguard.yaml
           token: ${{ secrets.GITHUB_TOKEN }}
           upload-artifacts: true
-          fail-on: warn
